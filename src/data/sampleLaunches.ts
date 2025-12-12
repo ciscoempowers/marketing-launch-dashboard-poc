@@ -77,7 +77,7 @@ export const sampleLaunches: Launch[] = [
     description: 'HAX Collaboration',
     launchDate: parseDate('12/15/25'),
     status: LaunchStatus.ON_TRACK,
-    completionPercentage: 65,
+    completionPercentage: 95,
     riskLevel: RiskLevel.LOW,
     team: Team.ENGINEERING,
     artifacts: [
