@@ -192,7 +192,8 @@ const LaunchArtifactsTracker: React.FC<ContentTrackerProps> = ({ launches, selec
                           id={`artifact-${artifact.id}`}
                           key={artifact.id} 
                           className={`hover:bg-gray-50 ${
-                            overdue ? 'bg-red-50 border-l-4 border-red-500' : ''
+                            overdue ? 'bg-red-50 border-l-4 border-red-500' : 
+                            artifact.status === ArtifactStatus.IN_REVIEW ? 'bg-purple-50 border-l-4 border-purple-400' : ''
                           }`}
                         >
                           <td className="px-3 py-3">
