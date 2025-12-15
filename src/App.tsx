@@ -21,6 +21,7 @@ const App: React.FC = () => {
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [dataAgent] = useState(DataAgentService.getInstance());
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<string>('all');
 
   useEffect(() => {
     const initializeData = async () => {
@@ -45,10 +46,15 @@ const App: React.FC = () => {
     { id: 'performance', name: 'Performance Agent', icon: DocumentTextIcon },
   ];
 
+  const handleNavigateToArtifacts = (launchId: string) => {
+    setSelectedProject(launchId);
+    setActiveView('content');
+  };
+
   const renderContent = () => {
     switch (activeView) {
       case 'status':
-        return <LaunchStatusOverview launches={launches} />;
+        return <LaunchStatusOverview launches={launches} onNavigateToArtifacts={handleNavigateToArtifacts} />;
       case 'calendar':
         return (
           <CalendarView 
@@ -59,7 +65,7 @@ const App: React.FC = () => {
           />
         );
       case 'content':
-        return <LaunchArtifactsTracker launches={launches} />;
+        return <LaunchArtifactsTracker launches={launches} selectedProject={selectedProject} />;
       case 'workflow':
         return <AgentWorkflowSimulator />;
       case 'performance':

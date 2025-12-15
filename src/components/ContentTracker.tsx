@@ -4,10 +4,11 @@ import { Launch, Artifact, ArtifactStatus, ContentType, Content, ApprovalStatus 
 
 interface ContentTrackerProps {
   launches: Launch[];
+  selectedProject?: string;
 }
 
-const LaunchArtifactsTracker: React.FC<ContentTrackerProps> = ({ launches }) => {
-  const [selectedLaunch, setSelectedLaunch] = useState<string>('all');
+const LaunchArtifactsTracker: React.FC<ContentTrackerProps> = ({ launches, selectedProject }) => {
+  const [selectedLaunch, setSelectedLaunch] = useState<string>(selectedProject || 'all');
 
   // Get all artifacts from all launches
   const getAllArtifacts = () => {

@@ -1,22 +1,21 @@
 import React from 'react';
 import { format, differenceInDays } from 'date-fns';
-import { Launch, LaunchStatus, RiskLevel, Team } from '../types/launch';
+import { Launch, LaunchStatus, RiskLevel } from '../types/launch';
 import { 
   CheckCircleIcon,
   ClockIcon,
   ExclamationTriangleIcon,
   XCircleIcon,
-  UserGroupIcon,
-  DocumentTextIcon,
   RocketLaunchIcon,
   ChartBarIcon
 } from '@heroicons/react/24/outline';
 
 interface LaunchStatusOverviewProps {
   launches: Launch[];
+  onNavigateToArtifacts?: (launchId: string) => void;
 }
 
-const LaunchStatusOverview: React.FC<LaunchStatusOverviewProps> = ({ launches }) => {
+const LaunchStatusOverview: React.FC<LaunchStatusOverviewProps> = ({ launches, onNavigateToArtifacts }) => {
   const getStatusIcon = (status: LaunchStatus) => {
     switch (status) {
       case LaunchStatus.COMPLETED:
@@ -55,21 +54,6 @@ const LaunchStatusOverview: React.FC<LaunchStatusOverviewProps> = ({ launches })
     }
   };
 
-  const getRiskColor = (risk: RiskLevel): string => {
-    switch (risk) {
-      case RiskLevel.LOW:
-        return 'bg-green-100 text-green-800 border-green-200';
-      case RiskLevel.MEDIUM:
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case RiskLevel.HIGH:
-        return 'bg-orange-100 text-orange-800 border-orange-200';
-      case RiskLevel.CRITICAL:
-        return 'bg-red-100 text-red-800 border-red-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
   const getDaysUntilLaunch = (launchDate: Date): number => {
     return differenceInDays(launchDate, new Date());
   };
@@ -79,19 +63,6 @@ const LaunchStatusOverview: React.FC<LaunchStatusOverviewProps> = ({ launches })
     if (percentage >= 60) return 'text-blue-600';
     if (percentage >= 40) return 'text-yellow-600';
     return 'text-red-600';
-  };
-
-  const getTeamIcon = (team: Team) => {
-    switch (team) {
-      case Team.MARKETING:
-        return <RocketLaunchIcon className="h-4 w-4" />;
-      case Team.PRODUCT:
-        return <DocumentTextIcon className="h-4 w-4" />;
-      case Team.ENGINEERING:
-        return <UserGroupIcon className="h-4 w-4" />;
-      default:
-        return <ChartBarIcon className="h-4 w-4" />;
-    }
   };
 
   const sortedLaunches = [...launches].sort((a, b) => a.launchDate.getTime() - b.launchDate.getTime());
@@ -166,10 +137,6 @@ const LaunchStatusOverview: React.FC<LaunchStatusOverviewProps> = ({ launches })
                     <p className="text-sm text-gray-600 mb-3">{launch.description}</p>
                     <div className="flex items-center space-x-4 text-sm">
                       <div className="flex items-center space-x-1">
-                        {getTeamIcon(launch.team)}
-                        <span className="capitalize">{launch.team}</span>
-                      </div>
-                      <div className="flex items-center space-x-1">
                         <span className="text-gray-500">Launch:</span>
                         <span className="font-medium">{format(launch.launchDate, 'MMM d, yyyy')}</span>
                       </div>
@@ -178,9 +145,6 @@ const LaunchStatusOverview: React.FC<LaunchStatusOverviewProps> = ({ launches })
                   <div className="flex flex-col items-end space-y-2">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(launch.status)}`}>
                       {launch.status.replace('_', ' ')}
-                    </span>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getRiskColor(launch.riskLevel)}`}>
-                      {launch.riskLevel.toUpperCase()} RISK
                     </span>
                   </div>
                 </div>
@@ -214,7 +178,7 @@ const LaunchStatusOverview: React.FC<LaunchStatusOverviewProps> = ({ launches })
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div
                         className={`h-2 rounded-full transition-all duration-300 ${
-                          isOverdue ? 'bg-red-600' : daysUntilLaunch <= 7 ? 'bg-yellow-600' : 'bg-green-600'
+                          isOverdue ? 'bg-red-600' : 'bg-green-600'
                         }`}
                         style={{ width: `${Math.min(100, Math.max(0, (30 - daysUntilLaunch) / 30 * 100))}%` }}
                       ></div>
@@ -223,18 +187,20 @@ const LaunchStatusOverview: React.FC<LaunchStatusOverviewProps> = ({ launches })
                 </div>
 
                 {/* Quick Stats */}
-                <div className="grid grid-cols-3 gap-4 text-center">
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <div className="text-lg font-semibold text-gray-900">{launch.artifacts.length}</div>
-                    <div className="text-xs text-gray-600">Artifacts</div>
+                <div className="grid grid-cols-2 gap-4 text-center">
+                  <div 
+                    className={`bg-gray-50 rounded-lg p-3 ${onNavigateToArtifacts ? 'cursor-pointer hover:bg-blue-50 hover:border-blue-300 border-2 border-transparent transition-all duration-200' : ''}`}
+                    onClick={() => onNavigateToArtifacts?.(launch.id)}
+                  >
+                    <div className={`text-lg font-semibold ${onNavigateToArtifacts ? 'text-blue-600 hover:text-blue-700' : 'text-gray-900'}`}>{launch.artifacts.length}</div>
+                    <div className={`text-xs ${onNavigateToArtifacts ? 'text-blue-600 font-medium' : 'text-gray-600'}`}>Artifacts</div>
+                    {onNavigateToArtifacts && (
+                      <div className="text-xs text-blue-500 mt-1">Click to view details →</div>
+                    )}
                   </div>
                   <div className="bg-gray-50 rounded-lg p-3">
                     <div className="text-lg font-semibold text-gray-900">{launch.content.length}</div>
-                    <div className="text-xs text-gray-600">Content Items</div>
-                  </div>
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <div className="text-lg font-semibold text-gray-900">{launch.milestones.length}</div>
-                    <div className="text-xs text-gray-600">Milestones</div>
+                    <div className="text-xs text-gray-600">Content Review Tracker</div>
                   </div>
                 </div>
 
