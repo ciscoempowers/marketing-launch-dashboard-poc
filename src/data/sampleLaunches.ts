@@ -226,7 +226,7 @@ export const sampleLaunches: Launch[] = [
         name: 'Internal Messaging house',
         type: ArtifactType.DOCUMENTATION,
         owner: 'Leah',
-        status: ArtifactStatus.IN_PROGRESS,
+        status: ArtifactStatus.COMPLETED,
         source: DataSource.MANUAL,
         targetDate: parseDate('15-Dec-25'),
         description: 'Internal messaging house for Collective Intelligence',
@@ -241,16 +241,6 @@ export const sampleLaunches: Launch[] = [
         source: DataSource.MANUAL,
         targetDate: parseDate('16-Dec-25'),
         description: 'Follow up with Ramana on publication date'
-      },
-      {
-        id: 'ci-messaging-guide',
-        name: 'Messaging guide for interviews',
-        type: ArtifactType.DOCUMENTATION,
-        owner: 'Rebecca',
-        status: ArtifactStatus.IN_PROGRESS,
-        source: DataSource.MANUAL,
-        targetDate: parseDate('19-Dec-25'),
-        description: 'include "about" info for each key talking points, get positioning aligned for AXIOS (questions drafted)'
       },
       {
         id: 'ci-osi-research',

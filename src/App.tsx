@@ -8,6 +8,7 @@ import {
 import CalendarView from './components/CalendarView';
 import LaunchArtifactsTracker from './components/ContentTracker';
 import LaunchStatusOverview from './components/LaunchStatusOverview';
+import PerformanceMonitor from './components/PerformanceMonitor';
 import { sampleLaunches } from './data/sampleLaunches';
 import { DataAgentService } from './services/dataAgents';
 import { Launch } from './types/launch';
@@ -43,7 +44,7 @@ const App: React.FC = () => {
     { id: 'calendar', name: 'Calendar', icon: CalendarIcon },
     { id: 'content', name: 'Artifacts Tracker', icon: DocumentTextIcon },
     { id: 'workflow', name: 'Content Review Agent', icon: DocumentTextIcon },
-    { id: 'performance', name: 'Performance Agent', icon: DocumentTextIcon },
+    { id: 'performance', name: 'Performance Monitor', icon: DocumentTextIcon },
   ];
 
   const handleNavigateToArtifacts = (launchId: string) => {
@@ -69,7 +70,7 @@ const App: React.FC = () => {
       case 'workflow':
         return <AgentWorkflowSimulator />;
       case 'performance':
-        return <PostLaunchPerformanceAgent />;
+        return <PerformanceMonitor />;
       default:
         return null;
     }
@@ -149,6 +150,7 @@ const AgentWorkflowSimulator: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedContent, setSelectedContent] = useState('HAX Announcement Blog');
   const [workflowSteps, setWorkflowSteps] = useState([
+    { name: 'Agent Curates Project Content', status: 'pending', type: 'automated' },
     { name: 'Content Assigned to Author', status: 'pending', type: 'automated' },
     { name: 'Author Drafts Content', status: 'pending', type: 'human', reviewer: 'Marc' },
     { name: 'Reviewer 1 Review', status: 'pending', type: 'human', reviewer: 'Leah' },
@@ -159,6 +161,7 @@ const AgentWorkflowSimulator: React.FC = () => {
   const [emailNotification, setEmailNotification] = useState<string | null>(null);
   const [contentEdits, setContentEdits] = useState<string | null>(null);
   const [editSummary, setEditSummary] = useState<string | null>(null);
+  const [curatedContent, setCuratedContent] = useState<string | null>(null);
 
   const contentOptions = [
     'HAX Announcement Blog',
@@ -176,6 +179,7 @@ const AgentWorkflowSimulator: React.FC = () => {
     setEditSummary(null);
     
     const initialSteps = [
+      { name: 'Agent Curates Project Content', status: 'pending', type: 'automated' },
       { name: 'Content Assigned to Author', status: 'pending', type: 'automated' },
       { name: 'Author Drafts Content', status: 'pending', type: 'human', reviewer: 'Marc' },
       { name: 'Reviewer 1 Review', status: 'pending', type: 'human', reviewer: 'Leah' },
@@ -185,6 +189,7 @@ const AgentWorkflowSimulator: React.FC = () => {
     ];
     
     setWorkflowSteps(initialSteps);
+    setCuratedContent(null);
     let stepIndex = 0;
     
     const progressWorkflow = () => {
@@ -204,8 +209,19 @@ const AgentWorkflowSimulator: React.FC = () => {
         
         setCurrentStep(stepIndex);
         
+        // Content curation when agent starts
+        if (stepIndex === 0) {
+          setTimeout(() => {
+            setCuratedContent(`Agent curated content for "${selectedContent}":
+• Confluence: Extracted 3 key technical specifications and 5 customer interviews
+• Jira: Identified 12 completed epics
+• SharePoint: Retrieved 4 case studies and 6 competitive analysis documents
+• Customer Value Points: Accelerated MAS deployments by 40%, reduced operational costs by 35%, improved security posture by 60%`);
+          }, 1500);
+        }
+        
         // Email notification when Vijoy's review starts
-        if (stepIndex === 3) {
+        if (stepIndex === 4) {
           setEmailNotification(`Email sent to Vijoy: "${selectedContent}" ready for review`);
           setTimeout(() => {
             setContentEdits(`Vijoy is editing "${selectedContent}"...`);
@@ -222,7 +238,7 @@ const AgentWorkflowSimulator: React.FC = () => {
           });
           
           // Edit summary when Vijoy completes review
-          if (stepIndex === 3) {
+          if (stepIndex === 4) {
             setEditSummary(`Vijoy's edits sent to Leah and Marc. Edit summary: "Updated messaging and added key insights for ${selectedContent}"`);
           }
           
@@ -324,23 +340,36 @@ const AgentWorkflowSimulator: React.FC = () => {
                 )}
               </div>
               <div className="text-sm text-gray-500">
-                {step.type === 'automated' ? 'Automated Step' : `Human Review - ${step.reviewer || 'Author'}`}
+                {step.type === 'automated' ? 'Automated Step' : 
+                 step.name === 'Author Drafts Content' ? `Author - ${step.reviewer || 'Author'}` :
+                 step.name === 'Publish Content' ? `Publisher - ${step.reviewer || 'Author'}` :
+                 `Human Review - ${step.reviewer || 'Author'}`}
               </div>
               
               {/* Inline content details for proceeding steps */}
-              {index === 3 && (currentStep === 3 || !isSimulating) && (
+              {index === 0 && (currentStep === 0 || !isSimulating) && (
                 <div className="mt-2 text-sm space-y-2">
-                  {(currentStep === 3 || !isSimulating) && emailNotification && (
+                  {(currentStep === 0 || !isSimulating) && curatedContent && (
+                    <div className="text-purple-700 bg-purple-50 p-2 rounded">
+                      <span className="font-medium">Content Curation Complete:</span>
+                      <div className="whitespace-pre-line mt-1">{curatedContent}</div>
+                    </div>
+                  )}
+                </div>
+              )}
+              {index === 4 && (currentStep === 4 || !isSimulating) && (
+                <div className="mt-2 text-sm space-y-2">
+                  {(currentStep === 4 || !isSimulating) && emailNotification && (
                     <div className="text-green-700 bg-green-50 p-2 rounded">
                       <span className="font-medium">Email sent to Vijoy:</span> "{selectedContent}" ready for review
                     </div>
                   )}
-                  {(currentStep === 3 || !isSimulating) && contentEdits && (
+                  {(currentStep === 4 || !isSimulating) && contentEdits && (
                     <div className="text-yellow-700 bg-yellow-50 p-2 rounded">
                       <span className="font-medium">Vijoy is editing:</span> "{selectedContent}"...
                     </div>
                   )}
-                  {(currentStep === 3 || !isSimulating) && editSummary && (
+                  {(currentStep === 4 || !isSimulating) && editSummary && (
                     <div className="text-blue-700 bg-blue-50 p-2 rounded">
                       <span className="font-medium">Vijoy's edits sent to Leah and Marc. Edit summary:</span> "Updated messaging and added key insights for {selectedContent}"
                     </div>
@@ -378,21 +407,50 @@ const PostLaunchPerformanceAgent: React.FC = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [selectedLaunch, setSelectedLaunch] = useState('HAX Launch');
   const [analysisStep, setAnalysisStep] = useState(0);
+  const [viewMode, setViewMode] = useState<'cumulative' | 'netnew'>('cumulative');
+  const [alerts, setAlerts] = useState<string[]>([]);
+  const [executiveSummary, setExecutiveSummary] = useState<string | null>(null);
   const [metrics, setMetrics] = useState([
-    { name: 'Social Media Engagement', status: 'pending', type: 'social', value: 0, target: 5000 },
-    { name: 'Vijoy Post on Dec 15', status: 'pending', type: 'social', value: 0, target: 1200 },
-    { name: 'Webinar Sign-ups', status: 'pending', type: 'conversion', value: 0, target: 250 },
-    { name: 'White Paper Downloads', status: 'pending', type: 'conversion', value: 0, target: 180 },
-    { name: 'Landing Page Conversions', status: 'pending', type: 'conversion', value: 0, target: 320 },
-    { name: 'Content Engagement Score', status: 'pending', type: 'engagement', value: 0, target: 85 }
+    { name: 'Social Media Engagement', status: 'pending', type: 'social', value: 0, target: 5000, wow: 0 },
+    { name: 'Blog Post Views', status: 'pending', type: 'content', value: 0, target: 3500, wow: 0 },
+    { name: 'White Paper Downloads', status: 'pending', type: 'conversion', value: 0, target: 180, wow: 0 },
+    { name: 'Website Traffic', status: 'pending', type: 'traffic', value: 0, target: 8000, wow: 0 },
+    { name: 'Lead Conversions', status: 'pending', type: 'conversion', value: 0, target: 320, wow: 0 },
+    { name: 'Content Engagement Score', status: 'pending', type: 'engagement', value: 0, target: 85, wow: 0 }
   ]);
   const [insights, setInsights] = useState<string | null>(null);
   const [recommendations, setRecommendations] = useState<string | null>(null);
   const [weeklyData, setWeeklyData] = useState([
-    { week: 'Nov 24', engagement: 3234, trend: 'up', change: 12 },
-    { week: 'Dec 1', engagement: 3876, trend: 'up', change: 20 },
-    { week: 'Dec 8', engagement: 4234, trend: 'up', change: 9 },
-    { week: 'Dec 15', engagement: 5234, trend: 'up', change: 24 }
+    { week: 'Nov 10', blog: 234, social: 3234, whitepaper: 45, website: 5678 },
+    { week: 'Nov 17', blog: 456, social: 3876, whitepaper: 67, website: 6234 },
+    { week: 'Nov 24', blog: 678, social: 4234, whitepaper: 89, website: 7123 },
+    { week: 'Dec 1', blog: 890, social: 5234, whitepaper: 123, website: 8456 },
+    { week: 'Dec 8', blog: 1234, social: 6123, whitepaper: 167, website: 9234 },
+    { week: 'Dec 15', blog: 1567, social: 7234, whitepaper: 203, website: 10234 }
+  ]);
+  const [blogData, setBlogData] = useState([
+    { week: 'Nov 10', views: 234, downloads: 12 },
+    { week: 'Nov 17', views: 456, downloads: 23 },
+    { week: 'Nov 24', views: 678, downloads: 34 },
+    { week: 'Dec 1', views: 890, downloads: 45 },
+    { week: 'Dec 8', views: 1234, downloads: 56 },
+    { week: 'Dec 15', views: 1567, downloads: 67 }
+  ]);
+  const [socialData, setSocialData] = useState([
+    { week: 'Nov 10', engagement: 3234, trend: 'up', change: 12 },
+    { week: 'Nov 17', engagement: 3876, trend: 'up', change: 20 },
+    { week: 'Nov 24', engagement: 4234, trend: 'up', change: 9 },
+    { week: 'Dec 1', engagement: 5234, trend: 'up', change: 24 },
+    { week: 'Dec 8', engagement: 6123, trend: 'up', change: 17 },
+    { week: 'Dec 15', engagement: 7234, trend: 'up', change: 18 }
+  ]);
+  const [whitepaperData, setWhitepaperData] = useState([
+    { week: 'Nov 10', downloads: 45, trend: 'up', change: 8 },
+    { week: 'Nov 17', downloads: 67, trend: 'up', change: 15 },
+    { week: 'Nov 24', downloads: 89, trend: 'up', change: 12 },
+    { week: 'Dec 1', downloads: 123, trend: 'up', change: 20 },
+    { week: 'Dec 8', downloads: 167, trend: 'up', change: 18 },
+    { week: 'Dec 15', downloads: 203, trend: 'up', change: 22 }
   ]);
   const [metricsAnalysis, setMetricsAnalysis] = useState<string | null>(null);
   const [agentInsights, setAgentInsights] = useState<string[]>([]);
@@ -414,18 +472,19 @@ const PostLaunchPerformanceAgent: React.FC = () => {
     setRecommendations(null);
     setMetricsAnalysis(null);
     setAgentInsights([]);
-    setAgentInsights([]);
     setAutonomousAction(null);
     setPatternRecognized(null);
     setCompetitiveIntel(null);
+    setAlerts([]);
+    setExecutiveSummary(null);
     
     const initialMetrics = [
-      { name: 'Social Media Engagement', status: 'pending', type: 'social', value: 0, target: 5000 },
-      { name: 'Vijoy Post on Dec 15', status: 'pending', type: 'social', value: 0, target: 1200 },
-      { name: 'Webinar Sign-ups', status: 'pending', type: 'conversion', value: 0, target: 250 },
-      { name: 'White Paper Downloads', status: 'pending', type: 'conversion', value: 0, target: 180 },
-      { name: 'Landing Page Conversions', status: 'pending', type: 'conversion', value: 0, target: 320 },
-      { name: 'Content Engagement Score', status: 'pending', type: 'engagement', value: 0, target: 85 }
+      { name: 'Social Media Engagement', status: 'pending', type: 'social', value: 0, target: 5000, wow: 0 },
+      { name: 'Blog Post Views', status: 'pending', type: 'content', value: 0, target: 3500, wow: 0 },
+      { name: 'White Paper Downloads', status: 'pending', type: 'conversion', value: 0, target: 180, wow: 0 },
+      { name: 'Website Traffic', status: 'pending', type: 'traffic', value: 0, target: 8000, wow: 0 },
+      { name: 'Lead Conversions', status: 'pending', type: 'conversion', value: 0, target: 320, wow: 0 },
+      { name: 'Content Engagement Score', status: 'pending', type: 'engagement', value: 0, target: 85, wow: 0 }
     ];
     
     setMetrics(initialMetrics);
@@ -440,15 +499,23 @@ const PostLaunchPerformanceAgent: React.FC = () => {
           }
           if (updated[metricIndex]) {
             updated[metricIndex].status = 'in_progress';
-            // Simulate metric values based on launch
+            // Simulate metric values based on launch with WoW metrics
             const metricValues = {
-              'HAX Launch': [5234, 1456, 287, 203, 356, 89],
-              'CI Vision Launch': [4123, 987, 198, 167, 298, 76],
-              'Qunnect Launch': [3876, 1123, 234, 189, 312, 82],
-              'AGNTCY Directory Launch': [4567, 1234, 267, 195, 334, 85]
+              'HAX Launch': [7234, 1567, 203, 10234, 356, 89],
+              'CI Vision Launch': [6123, 1234, 167, 9234, 298, 76],
+              'Qunnect Launch': [5234, 1123, 189, 8456, 312, 82],
+              'AGNTCY Directory Launch': [6567, 1345, 195, 9678, 334, 85]
+            };
+            const wowValues = {
+              'HAX Launch': [18, 25, 22, 15, 12, 8],
+              'CI Vision Launch': [15, 18, 20, 12, 10, 5],
+              'Qunnect Launch': [12, 15, 18, 8, 8, 6],
+              'AGNTCY Directory Launch': [17, 20, 15, 14, 11, 7]
             };
             const values = metricValues[selectedLaunch as keyof typeof metricValues] || metricValues['HAX Launch'];
+            const wow = wowValues[selectedLaunch as keyof typeof wowValues] || wowValues['HAX Launch'];
             updated[metricIndex].value = values[metricIndex];
+            updated[metricIndex].wow = wow[metricIndex];
           }
           return updated;
         });
@@ -583,11 +650,18 @@ const PostLaunchPerformanceAgent: React.FC = () => {
                 <div className="mt-2">
                   <div className="flex justify-between items-center mb-1">
                     <span className="text-sm font-medium">Performance: {metric.value.toLocaleString()} / {metric.target.toLocaleString()}</span>
-                    <span className={`text-xs px-2 py-1 rounded ${
-                      metric.value >= metric.target ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {Math.round((metric.value / metric.target) * 100)}%
-                    </span>
+                    <div className="flex items-center space-x-2">
+                      <span className={`text-xs px-2 py-1 rounded ${
+                        metric.value >= metric.target ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {Math.round((metric.value / metric.target) * 100)}%
+                      </span>
+                      <span className={`text-xs px-2 py-1 rounded ${
+                        metric.wow > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                        WoW: {metric.wow > 0 ? '+' : ''}{metric.wow}%
+                      </span>
+                    </div>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div 
@@ -613,7 +687,7 @@ const PostLaunchPerformanceAgent: React.FC = () => {
 
       {/* Weekly Trending Graph */}
       <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-        <h4 className="font-semibold text-gray-900 mb-4">Weekly Engagement Trending</h4>
+        <h4 className="font-semibold text-gray-900 mb-4">Weekly Social Media Engagement</h4>
         <div className="space-y-3">
           {weeklyData.map((week, index) => (
             <div key={index} className="flex items-center space-x-4">
@@ -622,27 +696,17 @@ const PostLaunchPerformanceAgent: React.FC = () => {
                 <div className="flex items-center space-x-2">
                   <div className="flex-1 bg-gray-200 rounded-full h-6">
                     <div 
-                      className={`h-6 rounded-full transition-all ${
-                        week.trend === 'up' ? 'bg-green-500' : 'bg-red-500'
-                      }`}
-                      style={{ width: `${(week.engagement / 6000) * 100}%` }}
+                      className="h-6 rounded-full transition-all bg-blue-500"
+                      style={{ width: `${(week.social / 8000) * 100}%` }}
                     ></div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <span className="text-sm font-medium">{week.engagement.toLocaleString()}</span>
-                    <div className={`flex items-center text-xs ${
-                      week.trend === 'up' ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      {week.trend === 'up' ? (
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                        </svg>
-                      ) : (
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                      <span>{week.change}%</span>
+                    <span className="text-sm font-medium">{week.social.toLocaleString()}</span>
+                    <div className="flex items-center text-xs text-green-600">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                      </svg>
+                      <span>{index > 0 ? Math.round(((week.social - weeklyData[index - 1].social) / weeklyData[index - 1].social) * 100) : 0}%</span>
                     </div>
                   </div>
                 </div>
@@ -651,7 +715,7 @@ const PostLaunchPerformanceAgent: React.FC = () => {
           ))}
         </div>
         <div className="mt-3 text-sm text-gray-600">
-          <span className="font-medium">Trend:</span> Strong upward momentum with 4 consecutive weeks of growth
+          <span className="font-medium">Trend:</span> Strong upward momentum with 6 consecutive weeks of social media growth
         </div>
       </div>
 
