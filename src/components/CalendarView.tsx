@@ -25,6 +25,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ launches, currentDate, onDa
   const [selectedProject, setSelectedProject] = useState<string>('all');
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>(['all']);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [showHiddenItems, setShowHiddenItems] = useState<{ date: Date; events: CalendarEvent[] } | null>(null);
 
   // Filter launches by selected project
   const getFilteredLaunches = () => {
@@ -40,19 +41,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ launches, currentDate, onDa
     const filteredLaunches = getFilteredLaunches();
 
     filteredLaunches.forEach(launch => {
-      // Add launch date
-      events.push({
-        id: `launch-${launch.id}`,
-        title: launch.name,
-        date: launch.launchDate,
-        type: 'launch',
-        status: launch.status,
-        launchId: launch.id,
-        launchName: launch.name,
-        color: getProjectColor(launch.id)
-      });
-      
-      // Add milestone deadlines
+      // Add milestone deadlines (including launch dates)
       launch.milestones.forEach(milestone => {
         events.push({
           id: `milestone-${milestone.id}`,
@@ -132,10 +121,19 @@ const CalendarView: React.FC<CalendarViewProps> = ({ launches, currentDate, onDa
 
   const getProjectColor = (launchId: string): string => {
     switch (launchId) {
-      case 'collective-intelligence': return 'bg-blue-500';
-      case 'hax': return 'bg-green-500';
-      case 'qunnect': return 'bg-purple-500';
-      default: return 'bg-gray-500';
+      case 'hax': return '#3B82F6'; // Blue
+      case 'collective-intelligence': return '#10B981'; // Emerald  
+      case 'qunnect': return '#8B5CF6'; // Violet
+      default: return '#6B7280'; // Gray
+    }
+  };
+
+  const getProjectColorLight = (launchId: string): string => {
+    switch (launchId) {
+      case 'hax': return '#DBEAFE'; // Light Blue
+      case 'collective-intelligence': return '#D1FAE5'; // Light Emerald  
+      case 'qunnect': return '#EDE9FE'; // Light Violet
+      default: return '#F3F4F6'; // Light Gray
     }
   };
 
@@ -201,46 +199,126 @@ const CalendarView: React.FC<CalendarViewProps> = ({ launches, currentDate, onDa
   };
 
   const renderMonthView = () => {
-    const monthStart = startOfMonth(currentDate);
-    const monthEnd = endOfMonth(monthStart);
-    const calendarStart = startOfWeek(monthStart);
-    const calendarEnd = endOfWeek(monthEnd);
-    const days = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
     const events = getCalendarEvents();
+    
+    // Generate 3 months starting from current month
+    const getMonthsToDisplay = () => {
+      const months = [];
+      const currentMonth = startOfMonth(currentDate);
+      for (let i = 0; i < 3; i++) {
+        months.push(addMonths(currentMonth, i));
+      }
+      return months;
+    };
 
-    const getEventsForDay = (day: Date) => {
-      return events.filter(event => isSameDay(event.date, day));
+    const renderSingleMonth = (monthDate: Date) => {
+      const monthStart = startOfMonth(monthDate);
+      const monthEnd = endOfMonth(monthStart);
+      const calendarStart = startOfWeek(monthStart);
+      const calendarEnd = endOfWeek(monthEnd);
+      const days = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
+
+      const getEventsForDay = (day: Date) => {
+        return events.filter(event => isSameDay(event.date, day));
+      };
+
+      return (
+        <div key={monthDate.toISOString()} className="bg-white rounded-lg shadow-lg p-6 mb-6">
+          {/* Month display */}
+         
+          <div className="text-center mb-4">
+            <h3 className="text-xl font-semibold">
+              {format(monthDate, 'MMMM yyyy')}
+            </h3>
+          </div>
+
+          {/* Calendar grid */}
+          <div className="grid grid-cols-7 gap-2 text-sm">
+            {/* Day headers */}
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+              <div key={day} className="text-center font-semibold text-gray-600 py-3">
+                {day}
+              </div>
+            ))}
+            
+            {/* Calendar days */}
+            {days.map((day) => {
+              const events = getEventsForDay(day);
+              const isCurrentMonth = isSameMonth(day, monthDate);
+              const isToday = isSameDay(day, new Date());
+              
+              return (
+                <div
+                  key={day.toISOString()}
+                  className={`
+                    border rounded p-3 min-h-[100px] ${
+                      isCurrentMonth ? 'bg-white' : 'bg-gray-50'
+                    } ${
+                      isToday ? 'ring-2 ring-blue-500' : ''
+                    } hover:bg-gray-50 cursor-pointer
+                  `}
+                  onClick={() => setSelectedDate(day)}
+                >
+                  <div className={`text-sm font-normal bg-white px-1 rounded ${
+                    isCurrentMonth ? 'text-gray-900' : 'text-gray-800'
+                  }`}>
+                    {format(day, 'd')}
+                  </div>
+                  <div className="mt-2 space-y-1">
+                    {events.slice(0, 2).map((event) => (
+                      <div
+                        key={event.id}
+                        className="text-xs p-1 rounded cursor-pointer hover:opacity-80 relative"
+                        style={{ backgroundColor: event.color }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedEvent(event);
+                        }}
+                      >
+                        {/* Launch milestone indicator */}
+                        {event.type === 'milestone' && event.title.toLowerCase().includes('launch') && (
+                          <div className="absolute -top-1 -right-1 text-lg">
+                            ⭐
+                          </div>
+                        )}
+                        <div className="flex items-center space-x-1">
+                          {event.type === 'artifact' && (
+                            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                              event.status === 'completed' || event.status === 'ready to publish' ? 'bg-green-300' :
+                              event.status === 'in_progress' || event.status === 'in_review' ? 'bg-yellow-300' :
+                              event.status === 'not_started' ? 'bg-gray-300' :
+                              event.status === 'blocked' ? 'bg-red-300' :
+                              'bg-gray-300'
+                            }`}></div>
+                          )}
+                          <div className="text-white font-normal truncate">
+                            {event.title}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {events.length > 2 && (
+                      <div 
+                        className="text-xs font-normal bg-white px-2 py-1 rounded border border-gray-400 cursor-pointer hover:bg-gray-100"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowHiddenItems({ date: day, events });
+                        }}
+                      >
+                        +{events.length - 2} more
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
     };
 
     return (
-      <div className="bg-white rounded-lg shadow-lg p-6">
-        {/* Calendar header */}
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={() => onDateChange(subMonths(currentDate, 1))}
-              className="p-2 hover:bg-gray-100 rounded"
-            >
-              ←
-            </button>
-            <h3 className="text-lg font-semibold">
-              {format(currentDate, 'MMMM yyyy')}
-            </h3>
-            <button
-              onClick={() => onDateChange(addMonths(currentDate, 1))}
-              className="p-2 hover:bg-gray-100 rounded"
-            >
-              →
-            </button>
-          </div>
-          <button
-            onClick={() => onDateChange(new Date())}
-            className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
-          >
-            Today
-          </button>
-        </div>
-
+      <div>
         {/* Project Filter */}
         <div className="mb-6">
           <div className="flex items-center justify-between">
@@ -251,104 +329,73 @@ const CalendarView: React.FC<CalendarViewProps> = ({ launches, currentDate, onDa
                   onClick={() => setSelectedProject('all')}
                   className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                     selectedProject === 'all'
-                      ? 'bg-blue-500 text-white shadow-sm'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? 'bg-gray-500 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                   }`}
                 >
                   All Projects
                 </button>
-                {launches.map(launch => (
+                {launches.map((launch) => (
                   <button
                     key={launch.id}
                     onClick={() => setSelectedProject(launch.id)}
-                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors flex items-center space-x-2 ${
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors hover:opacity-80 ${
                       selectedProject === launch.id
-                        ? `${getProjectColor(launch.id)} text-white shadow-sm`
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        ? 'text-white'
+                        : 'text-gray-700'
                     }`}
+                    style={{
+                      backgroundColor: selectedProject === launch.id ? getProjectColor(launch.id) : getProjectColorLight(launch.id)
+                    }}
                   >
-                    <div className={`w-3 h-3 rounded-full ${getProjectColor(launch.id)}`}></div>
-                    <span>{launch.name.replace('Human and Agent Collaboration (HAX)', 'HAX').replace('Collective Intelligence Vision Launch', 'Collective Intelligence')}</span>
+                    {launch.name}
                   </button>
                 ))}
               </div>
             </div>
-            <div className="text-xs text-gray-500 bg-gray-50 px-3 py-1 rounded-full">
-              {getFilteredLaunches().length} of {launches.length} projects
-            </div>
+            <button
+              onClick={() => onDateChange(new Date())}
+              className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              Today
+            </button>
           </div>
-          
-          {/* Status Filter */}
-          <div className="mt-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <span className="text-sm font-medium text-gray-700">Status:</span>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() => handleStatusToggle('all')}
-                    className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors flex items-center space-x-1 ${
-                      selectedStatuses.includes('all')
-                        ? 'bg-gray-500 text-white shadow-sm'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    <div className={`w-3 h-3 rounded border-2 ${
-                      selectedStatuses.includes('all') ? 'bg-white border-white' : 'border-gray-400'
-                    }`}></div>
-                    <span>All Status</span>
-                  </button>
-                  <button
-                    onClick={() => handleStatusToggle('not_started')}
-                    className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors flex items-center space-x-1 ${
-                      selectedStatuses.includes('not_started')
-                        ? 'bg-gray-400 text-white shadow-sm'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    <div className={`w-3 h-3 rounded border-2 ${
-                      selectedStatuses.includes('not_started') ? 'bg-white border-white' : 'border-gray-400'
-                    }`}></div>
-                    <span>Not Started</span>
-                  </button>
-                  <button
-                    onClick={() => handleStatusToggle('in_progress')}
-                    className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors flex items-center space-x-1 ${
-                      selectedStatuses.includes('in_progress')
-                        ? 'bg-yellow-500 text-white shadow-sm'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    <div className={`w-3 h-3 rounded border-2 ${
-                      selectedStatuses.includes('in_progress') ? 'bg-white border-white' : 'border-gray-400'
-                    }`}></div>
-                    <span>In Progress</span>
-                  </button>
-                  <button
-                    onClick={() => handleStatusToggle('completed')}
-                    className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors flex items-center space-x-1 ${
-                      selectedStatuses.includes('completed')
-                        ? 'bg-green-500 text-white shadow-sm'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    <div className={`w-3 h-3 rounded border-2 ${
-                      selectedStatuses.includes('completed') ? 'bg-white border-white' : 'border-gray-400'
-                    }`}></div>
-                    <span>Completed</span>
-                  </button>
-                </div>
-              </div>
-              {selectedStatuses.length > 0 && !selectedStatuses.includes('all') && (
-                <div className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">
-                  {selectedStatuses.length} selected
-                </div>
-              )}
+        </div>
+        
+        {/* Status Indicator Legend */}
+        <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+          <div className="text-sm font-medium text-gray-700 mb-2">Status Indicators:</div>
+          <div className="flex flex-wrap gap-4 text-xs text-gray-600">
+            <div className="flex items-center space-x-2">
+              <span>⭐</span>
+              <span>Launch Day</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 rounded-full bg-green-300"></div>
+              <span>Completed/Ready to Publish</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 rounded-full bg-yellow-300"></div>
+              <span>In Progress/In Review</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 rounded-full bg-gray-300"></div>
+              <span>Not Started</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 rounded-full bg-red-300"></div>
+              <span>Blocked</span>
             </div>
           </div>
         </div>
 
+        {/* Stacked Months */}
+        <div className="space-y-4">
+          {getMonthsToDisplay().map(monthDate => renderSingleMonth(monthDate))}
+        </div>
+
         {/* Status Legend */}
-        <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+        <div className="mt-6 p-3 bg-gray-50 rounded-lg">
           <div className="text-xs font-medium text-gray-700 mb-2">Status Indicators:</div>
           <div className="flex space-x-4">
             <div className="flex items-center space-x-2">
@@ -365,80 +412,35 @@ const CalendarView: React.FC<CalendarViewProps> = ({ launches, currentDate, onDa
             </div>
           </div>
         </div>
+      </div>
+    );
+  };
 
-        {/* Day headers */}
-        <div className="grid grid-cols-7 gap-px bg-gray-200 mb-px">
-          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-            <div key={day} className="bg-gray-50 p-2 text-center text-sm font-medium text-gray-700">
-              {day}
+  const renderSelectedDateEvents = () => {
+    if (!selectedDate) return null;
+
+    const events = getCalendarEvents().filter(event => 
+      isSameDay(event.date, selectedDate)
+    );
+
+    if (events.length === 0) return null;
+
+    return (
+      <div className="mt-6 bg-white rounded-lg shadow-lg p-6">
+        <h3 className="text-lg font-semibold mb-4">
+          Events for {format(selectedDate, 'MMMM d, yyyy')}
+        </h3>
+        <div className="space-y-3">
+          {events.map((event) => (
+            <div key={event.id} className="flex items-start p-3 bg-gray-50 rounded">
+              <div className={`w-3 h-3 rounded-full mr-3 mt-1 ${event.color}`}></div>
+              <div className="flex-1">
+                <p className="font-medium">{event.title}</p>
+                <p className="text-sm text-gray-600">{event.launchName}</p>
+                <p className="text-xs text-gray-500 capitalize">{event.type} • {event.status}</p>
+              </div>
             </div>
           ))}
-        </div>
-
-        {/* Calendar grid */}
-        <div className="grid grid-cols-7 gap-px bg-gray-200">
-          {days.map((day, index) => {
-            const dayEvents = getEventsForDay(day);
-            const isCurrentMonth = isSameMonth(day, currentDate);
-            const isSelected = selectedDate && isSameDay(day, selectedDate);
-            const isToday = isSameDay(day, new Date());
-
-            const isWeekend = day.getDay() === 0 || day.getDay() === 6;
-            
-            return (
-              <div
-                key={index}
-                className={`min-h-[100px] p-2 cursor-pointer hover:bg-gray-50 ${
-                  !isCurrentMonth ? 'text-gray-400' : ''
-                } ${isSelected ? 'bg-blue-50' : ''} ${isToday ? 'bg-yellow-50 ring-2 ring-yellow-400 ring-offset-1' : ''} ${
-                  isWeekend ? 'bg-gray-50' : 'bg-white'
-                }`}
-                onClick={() => setSelectedDate(day)}
-              >
-                <div className="flex justify-between items-start mb-1">
-                  <div className={`text-sm font-medium ${isToday ? 'text-blue-600 font-bold' : ''}`}>
-                    {format(day, 'd')}
-                  </div>
-                  {dayEvents.length > 0 && (
-                    <div className="bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">
-                      {dayEvents.length}
-                    </div>
-                  )}
-                </div>
-                <div className="space-y-1">
-                  {dayEvents.slice(0, 3).map((event, eventIndex) => (
-                    <div
-                      key={eventIndex}
-                      className={`text-xs p-1 rounded truncate flex items-center space-x-1 cursor-pointer hover:opacity-80 ${
-                        event.status === 'not_started' ? 'bg-gray-400 text-white' :
-                        event.status === 'in_progress' ? `${event.color} text-white` :
-                        event.status === 'completed' ? 'bg-green-500 text-white' :
-                        `${event.color} text-white`
-                      }`}
-                      title={`${event.title} - ${event.status.replace('_', ' ')}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedEvent(event);
-                      }}
-                    >
-                      <div className={`w-2 h-2 rounded-full ${
-                        event.status === 'not_started' ? 'bg-gray-300' :
-                        event.status === 'in_progress' ? 'bg-yellow-300' :
-                        event.status === 'completed' ? 'bg-green-300' :
-                        'bg-white'
-                      }`}></div>
-                      <span className="truncate flex-1">{event.title}</span>
-                    </div>
-                  ))}
-                  {dayEvents.length > 3 && (
-                    <div className="text-xs text-gray-500 font-medium">
-                      +{dayEvents.length - 3} more
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
         </div>
       </div>
     );
@@ -486,36 +488,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({ launches, currentDate, onDa
               </div>
             );
           })}
-        </div>
-      </div>
-    );
-  };
-
-  const renderSelectedDateEvents = () => {
-    if (!selectedDate) return null;
-
-    const events = getCalendarEvents().filter(event => 
-      isSameDay(event.date, selectedDate)
-    );
-
-    if (events.length === 0) return null;
-
-    return (
-      <div className="mt-6 bg-white rounded-lg shadow-lg p-6">
-        <h3 className="text-lg font-semibold mb-4">
-          Events for {format(selectedDate, 'MMMM d, yyyy')}
-        </h3>
-        <div className="space-y-3">
-          {events.map((event) => (
-            <div key={event.id} className="flex items-start p-3 bg-gray-50 rounded">
-              <div className={`w-3 h-3 rounded-full mr-3 mt-1 ${event.color}`}></div>
-              <div className="flex-1">
-                <p className="font-medium">{event.title}</p>
-                <p className="text-sm text-gray-600">{event.launchName}</p>
-                <p className="text-xs text-gray-500 capitalize">{event.type} • {event.status}</p>
-              </div>
-            </div>
-          ))}
         </div>
       </div>
     );
@@ -726,6 +698,52 @@ const CalendarView: React.FC<CalendarViewProps> = ({ launches, currentDate, onDa
                 </div>
               );
             })()}
+          </div>
+        </div>
+      )}
+      
+      {/* Hidden Items Popup */}
+      {showHiddenItems && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowHiddenItems(null)}>
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="text-lg font-semibold">
+                All Events for {format(showHiddenItems.date, 'MMMM d, yyyy')}
+              </h3>
+              <button
+                onClick={() => setShowHiddenItems(null)}
+                className="text-gray-400 hover:text-gray-600 text-xl"
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="space-y-3">
+              {showHiddenItems.events.map((event) => (
+                <div 
+                  key={event.id} 
+                  className="flex items-start p-3 bg-gray-50 rounded cursor-pointer hover:bg-gray-100"
+                  onClick={() => {
+                    setSelectedEvent(event);
+                    setShowHiddenItems(null);
+                  }}
+                >
+                  <div 
+                    className="w-3 h-3 rounded-full mr-3 mt-1 flex-shrink-0" 
+                    style={{ backgroundColor: event.color }}
+                  ></div>
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900">{event.title}</p>
+                    <p className="text-sm text-gray-600">{event.launchName}</p>
+                    <div className="flex items-center space-x-2 mt-1">
+                      <span className="text-xs text-gray-500 capitalize">{event.type}</span>
+                      <span className="text-xs text-gray-400">•</span>
+                      <span className="text-xs text-gray-500 capitalize">{event.status.replace('_', ' ')}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}

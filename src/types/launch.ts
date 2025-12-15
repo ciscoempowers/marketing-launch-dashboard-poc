@@ -48,6 +48,8 @@ export interface ApprovalStep {
   role: string;
   status: ApprovalStatus;
   approvedAt?: Date;
+  reviewStartDate?: Date;
+  approvalDueDate?: Date;
   comments?: string;
   order: number;
 }
@@ -112,6 +114,7 @@ export enum ArtifactStatus {
   IN_PROGRESS = 'in_progress',
   TESTING = 'testing',
   COMPLETED = 'completed',
+  READY_TO_PUBLISH = 'ready to publish',
   BLOCKED = 'blocked'
 }
 

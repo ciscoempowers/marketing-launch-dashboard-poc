@@ -1,17 +1,4 @@
-import { 
-  Launch, 
-  LaunchStatus, 
-  RiskLevel, 
-  Team, 
-  ArtifactType, 
-  ArtifactStatus, 
-  ContentType, 
-  ContentStatus, 
-  ApprovalStatus, 
-  MilestoneStatus, 
-  Priority,
-  DataSource 
-} from '../types/launch';
+import { Launch, LaunchStatus, RiskLevel, Team, Artifact, ArtifactType, ArtifactStatus, Content, ContentType, ContentStatus, ApprovalStep, ApprovalStatus, Priority, Milestone, MilestoneStatus, DataSource } from '../types/launch';
 
 // Helper function to parse CSV dates
 const parseDate = (dateStr: string): Date => {
@@ -20,53 +7,53 @@ const parseDate = (dateStr: string): Date => {
   }
   
   // Handle various date formats
-  const cleanDate = dateStr.replace(/"/g, '').trim();
+  const formats = [
+    /(\d{1,2})\/(\d{1,2})\/(\d{2,4})/, // MM/DD/YY or MM/DD/YYYY
+    /(\d{1,2})-(\w{3})-(\d{2,4})/,      // DD-MMM-YY or DD-MMM-YYYY
+  ];
   
-  // Try MM/DD/YY format
-  const mmddyyMatch = cleanDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
-  if (mmddyyMatch) {
-    const [, month, day, year] = mmddyyMatch;
-    return new Date(`20${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`);
+  for (const format of formats) {
+    const match = dateStr.match(format);
+    if (match) {
+      const [, part1, part2, year] = match;
+      let month: number, day: number;
+      
+      if (format === formats[0]) { // MM/DD/YY
+        month = parseInt(part1);
+        day = parseInt(part2);
+      } else { // DD-MMM-YY
+        day = parseInt(part1);
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        month = monthNames.indexOf(part2) + 1;
+      }
+      
+      const fullYear = parseInt(year.length === 2 ? '20' + year : year);
+      return new Date(fullYear, month - 1, day);
+    }
   }
   
-  // Try MM/DD/YYYY format  
-  const mmddyyyyMatch = cleanDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (mmddyyyyMatch) {
-    const [, month, day, year] = mmddyyyyMatch;
-    return new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`);
-  }
-  
-  // Try MMM-DD-YY format
-  const mmmddyyMatch = cleanDate.match(/^([A-Za-z]{3})-(\d{1,2})-(\d{2})$/);
-  if (mmmddyyMatch) {
-    const [, month, day, year] = mmmddyyMatch;
-    const monthMap: { [key: string]: string } = {
-      'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04', 'May': '05', 'Jun': '06',
-      'Jul': '07', 'Aug': '08', 'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'
-    };
-    return new Date(`20${year}-${monthMap[month]}-${day.padStart(2, '0')}`);
-  }
-  
-  // Default fallback
-  return new Date(cleanDate);
+  return new Date();
 };
 
-// Helper function to determine status
-const getStatus = (statusStr: string): LaunchStatus => {
-  const status = statusStr.toLowerCase();
-  if (status.includes('wip') || status.includes('in progress')) return LaunchStatus.IN_PROGRESS;
-  if (status.includes('review pending')) return LaunchStatus.AT_RISK;
-  if (status.includes('not started')) return LaunchStatus.PLANNING;
-  if (status.includes('complete') || status.includes('done')) return LaunchStatus.COMPLETED;
-  return LaunchStatus.ON_TRACK;
+// Helper function to map CSV status to enum
+const mapArtifactStatus = (status: string): ArtifactStatus => {
+  const statusMap: { [key: string]: ArtifactStatus } = {
+    'ready to publish': ArtifactStatus.READY_TO_PUBLISH,
+    'in progress': ArtifactStatus.IN_PROGRESS,
+    'pending': ArtifactStatus.NOT_STARTED,
+    'n/a': ArtifactStatus.NOT_STARTED,
+  };
+  return statusMap[status.toLowerCase()] || ArtifactStatus.NOT_STARTED;
 };
 
-// Helper function to determine risk level
-const getRiskLevel = (statusStr: string): RiskLevel => {
-  const status = statusStr.toLowerCase();
-  if (status.includes('review pending') || status.includes('wip')) return RiskLevel.MEDIUM;
-  if (status.includes('not started')) return RiskLevel.HIGH;
-  return RiskLevel.LOW;
+const mapApprovalStatus = (status: string): ApprovalStatus => {
+  const statusMap: { [key: string]: ApprovalStatus } = {
+    'approved': ApprovalStatus.APPROVED,
+    'pending': ApprovalStatus.PENDING,
+    'review pending': ApprovalStatus.PENDING,
+    'n/a': ApprovalStatus.SKIPPED,
+  };
+  return statusMap[status.toLowerCase()] || ApprovalStatus.SKIPPED;
 };
 
 // Parse CSV data into Launch objects
@@ -83,308 +70,335 @@ export const sampleLaunches: Launch[] = [
     artifacts: [
       {
         id: 'hax-social-blog',
-        name: '[Social] Promotion of Announcement Blog',
+        name: 'Social blog announcement',
         type: ArtifactType.BLOG_POST,
         owner: 'Leah',
-        status: ArtifactStatus.IN_PROGRESS,
+        status: ArtifactStatus.READY_TO_PUBLISH,
         source: DataSource.MANUAL,
         targetDate: parseDate('15-Dec-25'),
-        description: 'Social blog post announcement for HAX launch'
+        description: 'This blog post introduces the launch of HAX, highlighting its purpose, key features, and impact. Hosted on Outshift, it provides readers with an in-depth look at the campaign goals, innovative elements, and how it aligns with our broader vision. Owned Social: This social post highlights the announcement blog, the purpose is to generate engagement, spark curiosity, and encourage clicks to the full blog on Outshift.',
+        sourceUrl: 'https://cisco-my.sharepoint.com/:w:/p/mscibell/IQBB9iBmD7baS4rOmG9j-_VDAe9Mj9Byxr0Vm-b4F2DUcDE?e=HYOfRh&wdLOR=c7FCB8E18-4855-EB47-BD24-CF1B0CC7C06B'
       },
       {
-        id: 'hax-demo-video',
-        name: 'HAX Demo video',
+        id: 'hax-youtube-video',
+        name: 'HAX Youtube video',
         type: ArtifactType.DEMO,
         owner: 'Leah',
-        status: ArtifactStatus.IN_PROGRESS,
+        status: ArtifactStatus.READY_TO_PUBLISH,
         source: DataSource.MANUAL,
         targetDate: parseDate('15-Dec-25'),
-        description: 'Youtube video demo of HAX'
+        description: 'HAX demonstration video for YouTube'
       },
       {
         id: 'hax-arxiv-paper',
-        name: '[Research Paper] ArXiv paper',
+        name: 'Arxiv research paper',
         type: ArtifactType.DOCUMENTATION,
         owner: 'Marc',
-        status: ArtifactStatus.IN_PROGRESS,
+        status: ArtifactStatus.READY_TO_PUBLISH,
         source: DataSource.MANUAL,
         targetDate: parseDate('15-Dec-25'),
-        description: 'Arxiv documentation paper'
+        description: 'ArXiv research paper for HAX launch'
       },
       {
         id: 'hax-exec-social',
-        name: '[Social] Exec Promotion of Outshift Announcement Blog',
+        name: 'Exec social blog post',
         type: ArtifactType.BLOG_POST,
         owner: 'Rebecca',
-        status: ArtifactStatus.IN_PROGRESS,
+        status: ArtifactStatus.READY_TO_PUBLISH,
         source: DataSource.MANUAL,
         targetDate: parseDate('15-Dec-25'),
-        description: 'Executive social blog post promotion'
+        description: 'Leverage Vijoy to promote the announcement. Will publish ahead of the webinar on Dec 18, 2025',
+        sourceUrl: 'https://cisco-my.sharepoint.com/:w:/p/krygonza/EepgS9kbL1NAnrd_osiuQsgBRYs9fwDOp1OE9v0LDAngnA?e=KAJ1dt&wdLOR=c211A38C9-FB13-534E-9980-9F7F44746395'
       },
       {
-        id: 'hax-reddit-promo',
-        name: '[Reddit] promotion of Announcement Blog',
-        type: ArtifactType.BLOG_POST,
+        id: 'hax-reddit-post',
+        name: 'Reddit social post',
+        type: ArtifactType.WEBSITE,
         owner: 'Leah',
-        status: ArtifactStatus.IN_PROGRESS,
+        status: ArtifactStatus.READY_TO_PUBLISH,
         source: DataSource.MANUAL,
         targetDate: parseDate('17-Dec-25'),
-        description: 'Reddit social promotion'
+        description: 'Reddit social post for HAX promotion'
       },
       {
         id: 'hax-webinar',
-        name: 'HAX Webinar',
+        name: 'HAX webinar',
         type: ArtifactType.WEBINAR,
         owner: 'Leah',
-        status: ArtifactStatus.IN_PROGRESS,
+        status: ArtifactStatus.READY_TO_PUBLISH,
         source: DataSource.MANUAL,
         targetDate: parseDate('18-Dec-25'),
-        description: 'Webinar production plan for HAX'
+        description: 'HAX webinar presentation'
       },
       {
         id: 'hax-demo-social',
-        name: '[Social] Promotion of HAX Demo video',
-        type: ArtifactType.BLOG_POST,
+        name: 'Social post on demo',
+        type: ArtifactType.WEBSITE,
         owner: 'Leah',
-        status: ArtifactStatus.IN_PROGRESS,
+        status: ArtifactStatus.READY_TO_PUBLISH,
         source: DataSource.MANUAL,
         targetDate: parseDate('19-Dec-25'),
-        description: 'Social post promoting demo video'
+        description: 'Social media post highlighting HAX demo'
       }
     ],
     content: [
       {
-        id: 'hax-blog-announcement',
-        name: 'HAX Announcement Blog',
+        id: 'hax-blog-content',
+        name: 'HAX Blog Content',
         type: ContentType.BLOG_POST,
         owner: 'Leah',
-        status: ContentStatus.IN_REVIEW,
+        status: ContentStatus.PUBLISHED,
         approvalChain: [
           {
-            id: 'hax-review-1',
+            id: 'hax-blog-review',
             approver: 'Vijoy',
             role: 'Reviewer',
-            status: ApprovalStatus.PENDING,
+            status: ApprovalStatus.APPROVED,
+            reviewStartDate: parseDate('12/9/25'),
+            approvalDueDate: parseDate('12/11/25'),
             order: 1
           }
         ],
         targetDate: parseDate('15-Dec-25'),
-        actualDate: parseDate('12/10/25'),
-        description: 'Blog post announcing HAX launch',
+        description: 'Blog announcement content for HAX launch',
         linkedArtifacts: ['hax-social-blog'],
+        priority: Priority.HIGH
+      },
+      {
+        id: 'hax-paper-content',
+        name: 'HAX Research Paper Content',
+        type: ContentType.RESEARCH_PAPER,
+        owner: 'Marc',
+        status: ContentStatus.PUBLISHED,
+        approvalChain: [
+          {
+            id: 'hax-paper-review',
+            approver: 'Ramana',
+            role: 'Reviewer',
+            status: ApprovalStatus.APPROVED,
+            reviewStartDate: parseDate('12/5/25'),
+            approvalDueDate: parseDate('12/11/25'),
+            order: 1
+          }
+        ],
+        targetDate: parseDate('15-Dec-25'),
+        description: 'ArXiv research paper content',
+        linkedArtifacts: ['hax-arxiv-paper'],
         priority: Priority.HIGH
       }
     ],
     milestones: [
       {
         id: 'hax-launch',
-        name: 'HAX Launch Day',
-        description: 'Official HAX launch',
+        name: 'HAX Launch',
+        description: 'Official HAX launch date',
         targetDate: parseDate('12/15/25'),
         status: MilestoneStatus.IN_PROGRESS,
         dependencies: [],
-        assignee: 'Launch Team'
+        assignee: 'Leah'
+      },
+      {
+        id: 'hax-webinar',
+        name: 'HAX Webinar',
+        description: 'HAX webinar presentation',
+        targetDate: parseDate('12/18/25'),
+        status: MilestoneStatus.IN_PROGRESS,
+        dependencies: [],
+        assignee: 'Leah'
       }
     ],
     dependencies: [],
-    createdAt: new Date('2025-11-01'),
-    updatedAt: new Date('2025-12-10')
+    createdAt: new Date('2024-11-01'),
+    updatedAt: new Date()
   },
   {
     id: 'collective-intelligence',
     name: 'Collective Intelligence Vision Launch',
-    description: 'Collective Intelligence',
+    description: 'Collective Intelligence Vision Launch Campaign',
     launchDate: parseDate('1/22/26'),
     status: LaunchStatus.ON_TRACK,
-    completionPercentage: 45,
-    riskLevel: RiskLevel.LOW,
-    team: Team.PRODUCT,
+    completionPercentage: 60,
+    riskLevel: RiskLevel.MEDIUM,
+    team: Team.MARKETING,
     artifacts: [
       {
         id: 'ci-messaging',
-        name: 'Finalize core messaging and glossary of terms',
+        name: 'Internal Messaging house',
         type: ArtifactType.DOCUMENTATION,
-        owner: 'Vijoy, Rebecca, Leah',
+        owner: 'Leah',
         status: ArtifactStatus.IN_PROGRESS,
         source: DataSource.MANUAL,
-        targetDate: parseDate('12-Dec-25'),
-        description: 'Internal Messaging house'
+        targetDate: parseDate('15-Dec-25'),
+        description: 'Internal messaging house for Collective Intelligence',
+        sourceUrl: 'https://cisco-eti.atlassian.net/wiki/spaces/Marketing/pages/1934196761/Scaling+Superintelligence+Message+House'
       },
       {
-        id: 'ci-publication-v2',
-        name: 'First pre-launch publication V1 Nov and V2 Dec',
-        type: ArtifactType.DOCUMENTATION,
+        id: 'ci-osi-paper',
+        name: 'OSI Stack arXiv research paper',
+        type: ArtifactType.RESEARCH_PAPER,
         owner: 'Ramana',
         status: ArtifactStatus.IN_PROGRESS,
         source: DataSource.MANUAL,
         targetDate: parseDate('16-Dec-25'),
-        description: 'V2 Dec publication'
+        description: 'Follow up with Ramana on publication date'
       },
       {
         id: 'ci-messaging-guide',
-        name: 'Messaging guide for all interviews',
+        name: 'Messaging guide for interviews',
         type: ArtifactType.DOCUMENTATION,
         owner: 'Rebecca',
         status: ArtifactStatus.IN_PROGRESS,
         source: DataSource.MANUAL,
         targetDate: parseDate('19-Dec-25'),
-        description: 'Interview messaging guide'
+        description: 'include "about" info for each key talking points, get positioning aligned for AXIOS (questions drafted)'
       },
       {
-        id: 'ci-blog-osi',
-        name: 'Publish blog',
-        type: ArtifactType.BLOG_POST,
+        id: 'ci-osi-research',
+        name: 'OSI Stack Research paper',
+        type: ArtifactType.RESEARCH_PAPER,
         owner: 'Ramana',
         status: ArtifactStatus.IN_PROGRESS,
         source: DataSource.MANUAL,
         targetDate: parseDate('15-Jan-26'),
-        description: 'Blog on OSI Stack Research paper'
+        description: 'Ramana will have a draft before shut down'
       },
       {
         id: 'ci-pitch-deck',
-        name: 'Pitch deck',
+        name: 'Pitch deck & talk track',
         type: ArtifactType.DOCUMENTATION,
         owner: 'Leah',
         status: ArtifactStatus.IN_PROGRESS,
         source: DataSource.MANUAL,
         targetDate: parseDate('15-Jan-26'),
-        description: 'Pitch PPT deck & talk track'
+        description: 'Review must include Papi, as host of webinar.Dependency for final, approved deck on Jan 15, 2025 is to deliver webinar deck for recording on Jan 16, 2026'
       },
       {
         id: 'ci-whitepaper',
-        name: 'Vision Launch',
+        name: 'Whitepaper',
         type: ArtifactType.DOCUMENTATION,
         owner: 'Leah',
         status: ArtifactStatus.IN_PROGRESS,
         source: DataSource.MANUAL,
         targetDate: parseDate('22-Jan-26'),
-        description: 'Whitepaper'
+        description: 'Collective Intelligence whitepaper'
       },
       {
         id: 'ci-outshift-blog',
-        name: 'Vision Launch',
+        name: 'Outshift Blog',
         type: ArtifactType.BLOG_POST,
         owner: 'Leah',
-        status: ArtifactStatus.IN_PROGRESS,
+        status: ArtifactStatus.NOT_STARTED,
         source: DataSource.MANUAL,
         targetDate: parseDate('22-Jan-26'),
-        description: 'Outshift Blog'
+        description: 'Outshift blog post for Collective Intelligence'
       },
       {
-        id: 'ci-social-media',
-        name: 'Vision Launch',
-        type: ArtifactType.BLOG_POST,
+        id: 'ci-social-post',
+        name: 'Outshift, Vijoy, Ammar social post',
+        type: ArtifactType.WEBSITE,
         owner: 'Leah',
-        status: ArtifactStatus.IN_PROGRESS,
+        status: ArtifactStatus.NOT_STARTED,
         source: DataSource.MANUAL,
         targetDate: parseDate('22-Jan-26'),
-        description: 'Outshift, Vijoy, Ammar social media'
+        description: 'Social media post featuring Vijoy and Ammar'
       },
       {
         id: 'ci-landing-page',
-        name: 'Vision Launch',
-        type: ArtifactType.WEBSITE,
+        name: 'Landing page',
+        type: ArtifactType.WEBINAR,
         owner: 'Leah',
-        status: ArtifactStatus.IN_PROGRESS,
+        status: ArtifactStatus.NOT_STARTED,
         source: DataSource.MANUAL,
         targetDate: parseDate('22-Jan-26'),
-        description: 'Landing page'
+        description: 'Landing page for Collective Intelligence'
       },
       {
-        id: 'ci-homepage',
-        name: 'Vision Launch',
-        type: ArtifactType.WEBSITE,
-        owner: 'Leah',
-        status: ArtifactStatus.IN_PROGRESS,
-        source: DataSource.MANUAL,
-        targetDate: parseDate('22-Jan-26'),
-        description: 'Homepage feature (new design)'
-      },
-      {
-        id: 'ci-launch-demo',
-        name: 'Launch Demo',
+        id: 'ci-hivemind-demo',
+        name: 'Hivemind Demo',
         type: ArtifactType.DEMO,
         owner: 'Sabitha',
-        status: ArtifactStatus.IN_PROGRESS,
+        status: ArtifactStatus.NOT_STARTED,
         source: DataSource.MANUAL,
         targetDate: parseDate('27-Jan-26'),
-        description: 'Hivemind Demo - if possible'
+        description: 'Hivemind demonstration'
       },
       {
         id: 'ci-podcast',
-        name: 'SuperDataScience Podcast',
-        type: ArtifactType.BLOG_POST,
+        name: 'SDS Podcast Interview with Vijoy',
+        type: ArtifactType.DOCUMENTATION,
         owner: 'Vijoy',
-        status: ArtifactStatus.IN_PROGRESS,
+        status: ArtifactStatus.NOT_STARTED,
         source: DataSource.MANUAL,
         targetDate: parseDate('27-Jan-26'),
-        description: 'Featured Interview with Vijoy'
+        description: 'Vijoy is currently set to record on Jan 6, 2026'
       },
       {
-        id: 'ci-venturebeat-keynote',
-        name: 'VentureBeat SF CI Launch Event',
+        id: 'ci-keynote-deck',
+        name: 'VB SF Keynote Deck',
         type: ArtifactType.DOCUMENTATION,
         owner: 'Leah',
-        status: ArtifactStatus.IN_PROGRESS,
+        status: ArtifactStatus.NOT_STARTED,
         source: DataSource.MANUAL,
         targetDate: parseDate('27-Jan-26'),
-        description: 'Keynote Deck'
-      },
-      {
-        id: 'ci-venturebeat-pitch',
-        name: 'VentureBeat SF CI Launch Event',
-        type: ArtifactType.DOCUMENTATION,
-        owner: 'Leah',
-        status: ArtifactStatus.IN_PROGRESS,
-        source: DataSource.MANUAL,
-        targetDate: parseDate('27-Jan-26'),
-        description: 'Pitch deck'
-      },
-      {
-        id: 'ci-venturebeat-talk',
-        name: 'VentureBeat SF CI Launch Event',
-        type: ArtifactType.DOCUMENTATION,
-        owner: 'Leah',
-        status: ArtifactStatus.IN_PROGRESS,
-        source: DataSource.MANUAL,
-        targetDate: parseDate('27-Jan-26'),
-        description: 'Talk Track'
+        description: 'Vijoy- to provide speaker requests, if he has any (asap). dependencies -keynote deck needs the pitch deck'
       },
       {
         id: 'ci-webinar-deck',
-        name: 'Webinar: Intro 101',
+        name: 'Intro 101: Webinar deck',
         type: ArtifactType.DOCUMENTATION,
         owner: 'Leah',
         status: ArtifactStatus.NOT_STARTED,
         source: DataSource.MANUAL,
         targetDate: parseDate('29-Jan-26'),
-        description: 'Webinar deck'
+        description: 'Host: Papi. Vijoy approval deadlines: Confirm speakers: Dec 15, 2025(Papi) Final webinar title, abstract: Dec 17, 2025(Vijoy approval deadline) Final slides due: Jan 15, 2026(Vijoy approval deadline)'
       },
       {
         id: 'ci-cleu-pitch',
-        name: 'CLEU (Whisper Suite, Demo station)',
+        name: 'CLEU Pitch deck & talk track',
         type: ArtifactType.DOCUMENTATION,
         owner: 'Leah',
         status: ArtifactStatus.NOT_STARTED,
         source: DataSource.MANUAL,
         targetDate: parseDate('9-Feb-26'),
-        description: 'Pitch deck, talk track'
+        description: 'CLEU pitch deck and talking points'
       },
       {
-        id: 'ci-venturebeat-podcast',
-        name: 'Venture Beat "Beyond the Pilot" Podcast',
-        type: ArtifactType.BLOG_POST,
+        id: 'ci-vb-podcast',
+        name: 'VB podcast interview with Vijoy',
+        type: ArtifactType.DOCUMENTATION,
         owner: 'Leah',
         status: ArtifactStatus.NOT_STARTED,
         source: DataSource.MANUAL,
         targetDate: parseDate('18-Feb-26'),
-        description: 'Featured Interview with Vijoy'
+        description: 'Prep call: 1st week Jan (WIP),Recording: 2nd week Jan (WIP)'
       }
     ],
     content: [
       {
+        id: 'ci-messaging-content',
+        name: 'CI Messaging Content',
+        type: ContentType.RESEARCH_PAPER,
+        owner: 'Leah',
+        status: ContentStatus.IN_REVIEW,
+        approvalChain: [
+          {
+            id: 'ci-messaging-review',
+            approver: 'Vijoy',
+            role: 'Reviewer',
+            status: ApprovalStatus.PENDING,
+            reviewStartDate: parseDate('12/12/25'),
+            approvalDueDate: parseDate('12/14/25'),
+            order: 1
+          }
+        ],
+        targetDate: parseDate('15-Dec-25'),
+        description: 'Internal messaging content',
+        linkedArtifacts: ['ci-messaging'],
+        priority: Priority.HIGH
+      },
+      {
         id: 'ci-whitepaper-content',
-        name: 'Vision Launch Whitepaper',
+        name: 'CI Whitepaper Content',
         type: ContentType.RESEARCH_PAPER,
         owner: 'Leah',
         status: ContentStatus.IN_REVIEW,
@@ -394,12 +408,13 @@ export const sampleLaunches: Launch[] = [
             approver: 'Vijoy',
             role: 'Reviewer',
             status: ApprovalStatus.PENDING,
+            reviewStartDate: parseDate('1/10/25'),
+            approvalDueDate: parseDate('01/13/26'),
             order: 1
           }
         ],
         targetDate: parseDate('22-Jan-26'),
-        actualDate: parseDate('12/08/25'),
-        description: 'Vision Launch Whitepaper',
+        description: 'Whitepaper content for CI launch',
         linkedArtifacts: ['ci-whitepaper'],
         priority: Priority.HIGH
       }
@@ -407,71 +422,70 @@ export const sampleLaunches: Launch[] = [
     milestones: [
       {
         id: 'ci-vision-launch',
-        name: 'Collective Intelligence Vision Launch',
-        description: 'Official CI Vision launch',
+        name: 'CI Vision Launch',
+        description: 'Collective Intelligence Vision Launch',
         targetDate: parseDate('1/22/26'),
         status: MilestoneStatus.IN_PROGRESS,
         dependencies: [],
-        assignee: 'Launch Team'
+        assignee: 'Leah'
+      },
+      {
+        id: 'ci-webinar',
+        name: 'CI Webinar',
+        description: 'Collective Intelligence Webinar',
+        targetDate: parseDate('1/29/26'),
+        status: MilestoneStatus.IN_PROGRESS,
+        dependencies: [],
+        assignee: 'Leah'
       }
     ],
     dependencies: [],
-    createdAt: new Date('2025-10-15'),
-    updatedAt: new Date('2025-12-11')
+    createdAt: new Date('2024-11-01'),
+    updatedAt: new Date()
   },
   {
     id: 'qunnect',
     name: 'Qunnect Launch',
-    description: 'Qunnect Launch',
-    launchDate: parseDate('1/10/26'),
-    status: LaunchStatus.ON_TRACK,
-    completionPercentage: 15,
-    riskLevel: RiskLevel.LOW,
+    description: 'Qunnect NY Testbed Co-Marketing Launch Plan',
+    launchDate: parseDate('1/26/26'),
+    status: LaunchStatus.AT_RISK,
+    completionPercentage: 25,
+    riskLevel: RiskLevel.HIGH,
     team: Team.MARKETING,
     artifacts: [
       {
-        id: 'qunnect-social-blog',
-        name: '[Social] Promotion of Qunnect NY Testbed Co-Marketing Announcement Blog',
-        type: ArtifactType.BLOG_POST,
-        owner: 'Leah',
-        status: ArtifactStatus.NOT_STARTED,
-        source: DataSource.MANUAL,
-        targetDate: parseDate('TBD'),
-        description: 'Owned Social: This social post highlights the announcement blog'
-      },
-      {
         id: 'qunnect-exec-social',
-        name: '[Social] Exec Promotion of Outshift Qunnect Announcement Blog',
+        name: 'Exec social blog post',
         type: ArtifactType.BLOG_POST,
         owner: 'Rebecca',
         status: ArtifactStatus.NOT_STARTED,
         source: DataSource.MANUAL,
-        targetDate: parseDate('TBD'),
-        description: 'Executive social blog promotion'
+        targetDate: parseDate('26-Jan-26'),
+        description: 'Leverage ELT & SLT leadership, to promote the announcement. Vijoy definitely, Ammar maybe'
       },
       {
         id: 'qunnect-press-release',
-        name: 'Launch of [external] Qunnect Press Release',
-        type: ArtifactType.BLOG_POST,
+        name: 'Qunnect Press Release',
+        type: ArtifactType.DOCUMENTATION,
         owner: 'TBA',
         status: ArtifactStatus.NOT_STARTED,
         source: DataSource.MANUAL,
-        targetDate: parseDate('TBD'),
-        description: 'Press releases for various partners - Qunnect'
+        targetDate: parseDate('26-Jan-26'),
+        description: 'Official press release for Qunnect launch'
       },
       {
         id: 'qunnect-internal-pr',
-        name: 'Launch [Internal] PR Announcement',
-        type: ArtifactType.BLOG_POST,
+        name: 'Internal PR announcement',
+        type: ArtifactType.DOCUMENTATION,
         owner: 'Rebecca',
         status: ArtifactStatus.NOT_STARTED,
         source: DataSource.MANUAL,
-        targetDate: parseDate('TBD'),
-        description: 'Press release - internal'
+        targetDate: parseDate('26-Jan-26'),
+        description: 'Internal PR announcement is shared via email if applicable. Spokesperson email.'
       },
       {
-        id: 'qunnect-blog',
-        name: 'Qunnect Launch',
+        id: 'qunnect-social-blog',
+        name: 'Social blog announcement',
         type: ArtifactType.BLOG_POST,
         owner: 'Michelle',
         status: ArtifactStatus.NOT_STARTED,
@@ -480,42 +494,43 @@ export const sampleLaunches: Launch[] = [
         description: 'Tier 3_Qunnect NY Testbed Co-Marketing Launch Plan'
       }
     ],
-    content: [
-      {
-        id: 'qunnect-blog-content',
-        name: 'Qunnect Launch Blog',
-        type: ContentType.BLOG_POST,
-        owner: 'Michelle',
-        status: ContentStatus.DRAFT,
-        approvalChain: [
-          {
-            id: 'qunnect-blog-review',
-            approver: 'Leah',
-            role: 'Reviewer',
-            status: ApprovalStatus.PENDING,
-            order: 1
-          }
-        ],
-        targetDate: parseDate('26-Jan-26'),
-        actualDate: parseDate('12/05/25'),
-        description: 'Qunnect Launch Blog',
-        linkedArtifacts: ['qunnect-blog'],
-        priority: Priority.MEDIUM
-      }
-    ],
+    content: [],
     milestones: [
       {
         id: 'qunnect-launch',
         name: 'Qunnect Launch',
-        description: 'Official Qunnect launch',
-        targetDate: parseDate('1/10/26'),
-        status: MilestoneStatus.NOT_STARTED,
+        description: 'Qunnect NY Testbed Launch',
+        targetDate: parseDate('1/26/26'),
+        status: MilestoneStatus.BLOCKED,
         dependencies: [],
-        assignee: 'Launch Team'
+        assignee: 'Rebecca'
       }
     ],
-    dependencies: [],
-    createdAt: new Date('2025-11-20'),
-    updatedAt: new Date('2025-12-11')
+    dependencies: ['collective-intelligence'],
+    createdAt: new Date('2024-11-01'),
+    updatedAt: new Date()
   }
 ];
+
+// Helper function to get risk level
+const getRiskLevel = (completionPercentage: number, daysUntilLaunch: number): RiskLevel => {
+  if (daysUntilLaunch < 30 && completionPercentage < 80) return RiskLevel.HIGH;
+  if (daysUntilLaunch < 60 && completionPercentage < 60) return RiskLevel.MEDIUM;
+  return RiskLevel.LOW;
+};
+
+// Helper function to calculate completion percentage
+const calculateCompletionPercentage = (artifacts: Artifact[]): number => {
+  if (artifacts.length === 0) return 0;
+  const completedArtifacts = artifacts.filter(a => 
+    a.status === ArtifactStatus.COMPLETED || a.status === ArtifactStatus.READY_TO_PUBLISH
+  ).length;
+  return Math.round((completedArtifacts / artifacts.length) * 100);
+};
+
+// Update completion percentages based on artifact statuses
+sampleLaunches.forEach(launch => {
+  launch.completionPercentage = calculateCompletionPercentage(launch.artifacts);
+  const daysUntilLaunch = Math.ceil((launch.launchDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+  launch.riskLevel = getRiskLevel(launch.completionPercentage, daysUntilLaunch);
+});

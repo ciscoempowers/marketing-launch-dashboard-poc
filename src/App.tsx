@@ -5,25 +5,20 @@ import {
   RocketLaunchIcon,
   CogIcon
 } from '@heroicons/react/24/outline';
-import GanttChart from './components/GanttChart';
 import CalendarView from './components/CalendarView';
-import ContentTracker from './components/ContentTracker';
+import LaunchArtifactsTracker from './components/ContentTracker';
 import LaunchStatusOverview from './components/LaunchStatusOverview';
 import { sampleLaunches } from './data/sampleLaunches';
 import { DataAgentService } from './services/dataAgents';
 import { Launch } from './types/launch';
 import { addMonths, startOfMonth } from 'date-fns';
 
-type ViewType = 'gantt' | 'calendar' | 'content' | 'status' | 'workflow' | 'performance';
+type ViewType = 'calendar' | 'content' | 'status' | 'workflow' | 'performance';
 
 const App: React.FC = () => {
   const [activeView, setActiveView] = useState<ViewType>('status');
   const [launches, setLaunches] = useState<Launch[]>(sampleLaunches);
   const [calendarDate, setCalendarDate] = useState(new Date());
-  const [ganttDateRange, setGanttDateRange] = useState({
-    start: startOfMonth(new Date()),
-    end: addMonths(startOfMonth(new Date()), 6)
-  });
   const [dataAgent] = useState(DataAgentService.getInstance());
   const [isLoading, setIsLoading] = useState(false);
 
@@ -45,9 +40,8 @@ const App: React.FC = () => {
   const navigation = [
     { id: 'status', name: 'Launch Status', icon: RocketLaunchIcon },
     { id: 'calendar', name: 'Calendar', icon: CalendarIcon },
-    { id: 'content', name: 'Content Tracker', icon: DocumentTextIcon },
-    { id: 'gantt', name: 'Gantt Chart', icon: CalendarIcon },
-    { id: 'workflow', name: 'Agent Workflow', icon: DocumentTextIcon },
+    { id: 'content', name: 'Artifacts Tracker', icon: DocumentTextIcon },
+    { id: 'workflow', name: 'Content Review Agent', icon: DocumentTextIcon },
     { id: 'performance', name: 'Performance Agent', icon: DocumentTextIcon },
   ];
 
@@ -55,8 +49,6 @@ const App: React.FC = () => {
     switch (activeView) {
       case 'status':
         return <LaunchStatusOverview launches={launches} />;
-      case 'gantt':
-        return <GanttChart launches={launches} viewRange={ganttDateRange} />;
       case 'calendar':
         return (
           <CalendarView 
@@ -67,7 +59,7 @@ const App: React.FC = () => {
           />
         );
       case 'content':
-        return <ContentTracker launches={launches} />;
+        return <LaunchArtifactsTracker launches={launches} />;
       case 'workflow':
         return <AgentWorkflowSimulator />;
       case 'performance':
