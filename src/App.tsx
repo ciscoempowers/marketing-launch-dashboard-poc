@@ -52,10 +52,26 @@ const App: React.FC = () => {
     setActiveView('content');
   };
 
+  const handleNavigateToContentReview = (launchId: string, artifactId: string) => {
+    setSelectedProject(launchId);
+    setActiveView('content');
+    // Store the artifact ID to highlight it when navigating to content tracker
+    setTimeout(() => {
+      const element = document.getElementById(`artifact-${artifactId}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        element.classList.add('ring-2', 'ring-red-500', 'ring-offset-2');
+        setTimeout(() => {
+          element.classList.remove('ring-2', 'ring-red-500', 'ring-offset-2');
+        }, 3000);
+      }
+    }, 100);
+  };
+
   const renderContent = () => {
     switch (activeView) {
       case 'status':
-        return <LaunchStatusOverview launches={launches} onNavigateToArtifacts={handleNavigateToArtifacts} />;
+        return <LaunchStatusOverview launches={launches} onNavigateToArtifacts={handleNavigateToArtifacts} onNavigateToContentReview={handleNavigateToContentReview} />;
       case 'calendar':
         return (
           <CalendarView 

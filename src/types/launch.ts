@@ -112,9 +112,11 @@ export enum ContentStatus {
 export enum ArtifactStatus {
   NOT_STARTED = 'not_started',
   IN_PROGRESS = 'in_progress',
+  IN_REVIEW = 'in_review',
   TESTING = 'testing',
   COMPLETED = 'completed',
   READY_TO_PUBLISH = 'ready to publish',
+  PUBLISHED = 'published',
   BLOCKED = 'blocked'
 }
 

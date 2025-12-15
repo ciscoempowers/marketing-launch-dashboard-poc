@@ -189,6 +189,7 @@ const LaunchArtifactsTracker: React.FC<ContentTrackerProps> = ({ launches, selec
                       
                       return (
                         <tr 
+                          id={`artifact-${artifact.id}`}
                           key={artifact.id} 
                           className={`hover:bg-gray-50 ${
                             overdue ? 'bg-red-50 border-l-4 border-red-500' : ''
@@ -196,7 +197,18 @@ const LaunchArtifactsTracker: React.FC<ContentTrackerProps> = ({ launches, selec
                         >
                           <td className="px-3 py-3">
                             <div className="text-base font-medium text-gray-900">
-                              {artifact.name}
+                              {artifact.sourceUrl ? (
+                                <a 
+                                  href={artifact.sourceUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:text-blue-800 hover:underline"
+                                >
+                                  {artifact.name}
+                                </a>
+                              ) : (
+                                artifact.name
+                              )}
                               {overdue && (
                                 <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-sm font-medium bg-red-100 text-red-800">
                                   OVERDUE

@@ -1,6 +1,6 @@
 import React from 'react';
 import { format, differenceInDays } from 'date-fns';
-import { Launch, LaunchStatus, RiskLevel } from '../types/launch';
+import { Launch, LaunchStatus, RiskLevel, ArtifactStatus } from '../types/launch';
 import { 
   CheckCircleIcon,
   ClockIcon,
@@ -13,9 +13,14 @@ import {
 interface LaunchStatusOverviewProps {
   launches: Launch[];
   onNavigateToArtifacts?: (launchId: string) => void;
+  onNavigateToContentReview?: (launchId: string, artifactId: string) => void;
 }
 
-const LaunchStatusOverview: React.FC<LaunchStatusOverviewProps> = ({ launches, onNavigateToArtifacts }) => {
+const LaunchStatusOverview: React.FC<LaunchStatusOverviewProps> = ({ launches, onNavigateToArtifacts, onNavigateToContentReview }) => {
+  const getPendingReviewCount = (launch: Launch): number => {
+    return launch.artifacts.filter(artifact => artifact.status === ArtifactStatus.IN_REVIEW).length;
+  };
+
   const getStatusIcon = (status: LaunchStatus) => {
     switch (status) {
       case LaunchStatus.COMPLETED:
@@ -123,6 +128,7 @@ const LaunchStatusOverview: React.FC<LaunchStatusOverviewProps> = ({ launches, o
         {sortedLaunches.map((launch) => {
           const daysUntilLaunch = getDaysUntilLaunch(launch.launchDate);
           const isOverdue = daysUntilLaunch < 0 && launch.status !== LaunchStatus.COMPLETED;
+          const pendingReviewCount = getPendingReviewCount(launch);
           
           return (
             <div key={launch.id} className="bg-white rounded-lg shadow-lg overflow-hidden">
@@ -133,6 +139,19 @@ const LaunchStatusOverview: React.FC<LaunchStatusOverviewProps> = ({ launches, o
                     <div className="flex items-center space-x-2 mb-2">
                       {getStatusIcon(launch.status)}
                       <h3 className="text-lg font-semibold text-gray-900">{launch.name}</h3>
+                      {pendingReviewCount > 0 && (
+                        <button
+                          onClick={() => {
+                            const pendingArtifact = launch.artifacts.find(a => a.status === ArtifactStatus.IN_REVIEW);
+                            if (pendingArtifact) {
+                              onNavigateToContentReview?.(launch.id, pendingArtifact.id);
+                            }
+                          }}
+                          className="relative inline-flex items-center justify-center w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full hover:bg-red-600 transition-colors"
+                        >
+                          {pendingReviewCount}
+                        </button>
+                      )}
                     </div>
                     <p className="text-sm text-gray-600 mb-3">{launch.description}</p>
                     <div className="flex items-center space-x-4 text-sm">
@@ -187,20 +206,16 @@ const LaunchStatusOverview: React.FC<LaunchStatusOverviewProps> = ({ launches, o
                 </div>
 
                 {/* Quick Stats */}
-                <div className="grid grid-cols-2 gap-4 text-center">
+                <div className="flex justify-start">
                   <div 
-                    className={`bg-gray-50 rounded-lg p-3 ${onNavigateToArtifacts ? 'cursor-pointer hover:bg-blue-50 hover:border-blue-300 border-2 border-transparent transition-all duration-200' : ''}`}
+                    className={`${onNavigateToArtifacts ? 'cursor-pointer hover:bg-blue-50 hover:border-blue-300 border-2 border-transparent transition-all duration-200' : ''}`}
                     onClick={() => onNavigateToArtifacts?.(launch.id)}
                   >
-                    <div className={`text-lg font-semibold ${onNavigateToArtifacts ? 'text-blue-600 hover:text-blue-700' : 'text-gray-900'}`}>{launch.artifacts.length}</div>
-                    <div className={`text-xs ${onNavigateToArtifacts ? 'text-blue-600 font-medium' : 'text-gray-600'}`}>Artifacts</div>
+                    <div className={`text-lg font-semibold text-left ${onNavigateToArtifacts ? 'text-blue-600 hover:text-blue-700' : 'text-gray-900'}`}>{launch.artifacts.length}</div>
+                    <div className={`text-xs text-left ${onNavigateToArtifacts ? 'text-blue-600 font-medium' : 'text-gray-600'}`}>Artifacts</div>
                     {onNavigateToArtifacts && (
-                      <div className="text-xs text-blue-500 mt-1">Click to view details →</div>
+                      <div className="text-xs text-blue-500 mt-1 text-left">Click to view details →</div>
                     )}
-                  </div>
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <div className="text-lg font-semibold text-gray-900">{launch.content.length}</div>
-                    <div className="text-xs text-gray-600">Content Review Tracker</div>
                   </div>
                 </div>
 

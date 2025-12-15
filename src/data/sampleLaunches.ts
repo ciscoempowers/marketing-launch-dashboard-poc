@@ -40,6 +40,7 @@ const mapArtifactStatus = (status: string): ArtifactStatus => {
   const statusMap: { [key: string]: ArtifactStatus } = {
     'ready to publish': ArtifactStatus.READY_TO_PUBLISH,
     'published': ArtifactStatus.PUBLISHED,
+    'in review': ArtifactStatus.IN_REVIEW,
     'in progress': ArtifactStatus.IN_PROGRESS,
     'pending': ArtifactStatus.NOT_STARTED,
     'n/a': ArtifactStatus.NOT_STARTED,
@@ -227,11 +228,11 @@ export const sampleLaunches: Launch[] = [
         name: 'Internal Messaging house',
         type: ArtifactType.DOCUMENTATION,
         owner: 'Leah',
-        status: ArtifactStatus.COMPLETED,
+        status: ArtifactStatus.IN_REVIEW,
         source: DataSource.MANUAL,
         targetDate: parseDate('15-Dec-25'),
         description: 'Internal messaging house for Collective Intelligence',
-        sourceUrl: 'https://cisco-eti.atlassian.net/wiki/spaces/Marketing/pages/1934196761/Scaling+Superintelligence+Message+House'
+        sourceUrl: 'https://cisco-eti.atlassian.net/wiki/x/GYBJcw'
       },
       {
         id: 'ci-osi-paper',
