@@ -44,7 +44,7 @@ const App: React.FC = () => {
     { id: 'calendar', name: 'Calendar', icon: CalendarIcon },
     { id: 'content', name: 'Artifacts Tracker', icon: DocumentTextIcon },
     { id: 'workflow', name: 'Content Review Agent', icon: DocumentTextIcon },
-    { id: 'performance', name: 'Performance Monitor', icon: DocumentTextIcon },
+    { id: 'performance', name: 'Performance Monitor Agent', icon: DocumentTextIcon },
   ];
 
   const handleNavigateToArtifacts = (launchId: string) => {
