@@ -39,6 +39,7 @@ const parseDate = (dateStr: string): Date => {
 const mapArtifactStatus = (status: string): ArtifactStatus => {
   const statusMap: { [key: string]: ArtifactStatus } = {
     'ready to publish': ArtifactStatus.READY_TO_PUBLISH,
+    'published': ArtifactStatus.PUBLISHED,
     'in progress': ArtifactStatus.IN_PROGRESS,
     'pending': ArtifactStatus.NOT_STARTED,
     'n/a': ArtifactStatus.NOT_STARTED,
@@ -73,7 +74,7 @@ export const sampleLaunches: Launch[] = [
         name: 'Social blog announcement',
         type: ArtifactType.BLOG_POST,
         owner: 'Leah',
-        status: ArtifactStatus.READY_TO_PUBLISH,
+        status: ArtifactStatus.PUBLISHED,
         source: DataSource.MANUAL,
         targetDate: parseDate('15-Dec-25'),
         description: 'This blog post introduces the launch of HAX, highlighting its purpose, key features, and impact. Hosted on Outshift, it provides readers with an in-depth look at the campaign goals, innovative elements, and how it aligns with our broader vision. Owned Social: This social post highlights the announcement blog, the purpose is to generate engagement, spark curiosity, and encourage clicks to the full blog on Outshift.',
@@ -84,7 +85,7 @@ export const sampleLaunches: Launch[] = [
         name: 'HAX Youtube video',
         type: ArtifactType.DEMO,
         owner: 'Leah',
-        status: ArtifactStatus.READY_TO_PUBLISH,
+        status: ArtifactStatus.PUBLISHED,
         source: DataSource.MANUAL,
         targetDate: parseDate('15-Dec-25'),
         description: 'HAX demonstration video for YouTube'
@@ -94,7 +95,7 @@ export const sampleLaunches: Launch[] = [
         name: 'Arxiv research paper',
         type: ArtifactType.DOCUMENTATION,
         owner: 'Marc',
-        status: ArtifactStatus.READY_TO_PUBLISH,
+        status: ArtifactStatus.PUBLISHED,
         source: DataSource.MANUAL,
         targetDate: parseDate('15-Dec-25'),
         description: 'ArXiv research paper for HAX launch'
@@ -104,10 +105,10 @@ export const sampleLaunches: Launch[] = [
         name: 'Exec social blog post',
         type: ArtifactType.BLOG_POST,
         owner: 'Rebecca',
-        status: ArtifactStatus.READY_TO_PUBLISH,
+        status: ArtifactStatus.PUBLISHED,
         source: DataSource.MANUAL,
         targetDate: parseDate('15-Dec-25'),
-        description: 'Leverage Vijoy to promote the announcement. Will publish ahead of the webinar on Dec 18, 2025',
+        description: 'Leverage Vijoy to promote the announcement. Will publish ahead of webinar on Dec 18, 2025',
         sourceUrl: 'https://cisco-my.sharepoint.com/:w:/p/krygonza/EepgS9kbL1NAnrd_osiuQsgBRYs9fwDOp1OE9v0LDAngnA?e=KAJ1dt&wdLOR=c211A38C9-FB13-534E-9980-9F7F44746395'
       },
       {
