@@ -642,16 +642,8 @@ const PerformanceMonitor: React.FC = () => {
                 {optimizationRecommendations.sort((a, b) => a.priority - b.priority).map((rec, index) => (
                   <div key={rec.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                     <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center space-x-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold ${
-                          rec.category === 'budget' ? 'bg-green-500' :
-                          rec.category === 'timing' ? 'bg-blue-500' :
-                          rec.category === 'content' ? 'bg-purple-500' :
-                          'bg-orange-500'
-                        }`}>
-                          {rec.category.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
+                      <div className="flex-1">
+                        <div className="mb-2">
                           <h4 className="font-semibold text-gray-900">{rec.title}</h4>
                           <span className={`text-xs px-2 py-1 rounded ${
                             rec.effort === 'low' ? 'bg-green-100 text-green-800' :
@@ -798,16 +790,8 @@ const PerformanceMonitor: React.FC = () => {
             {optimizationRecommendations.sort((a, b) => a.priority - b.priority).map((rec, index) => (
               <div key={rec.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                 <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold ${
-                      rec.category === 'budget' ? 'bg-green-500' :
-                      rec.category === 'timing' ? 'bg-blue-500' :
-                      rec.category === 'content' ? 'bg-purple-500' :
-                      'bg-orange-500'
-                    }`}>
-                      {rec.category.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
+                  <div className="flex-1">
+                    <div className="mb-2">
                       <h4 className="font-semibold text-gray-900">{rec.title}</h4>
                       <span className={`text-xs px-2 py-1 rounded ${
                         rec.effort === 'low' ? 'bg-green-100 text-green-800' :
