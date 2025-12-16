@@ -190,15 +190,13 @@ const LaunchStatusOverview: React.FC<LaunchStatusOverviewProps> = ({ launches, o
                   <div>
                     <div className="flex justify-between items-center mb-1">
                       <span className="text-sm text-gray-600">Days to Launch</span>
-                      <span className={`text-sm font-medium ${isOverdue ? 'text-red-600' : daysUntilLaunch <= 7 ? 'text-yellow-600' : 'text-gray-900'}`}>
-                        {isOverdue ? `${Math.abs(daysUntilLaunch)} days overdue` : daysUntilLaunch === 0 ? 'Today' : `${daysUntilLaunch} days`}
+                      <span className={`text-sm font-medium ${isOverdue ? 'text-green-600' : daysUntilLaunch <= 7 ? 'text-yellow-600' : 'text-gray-900'}`}>
+                        {isOverdue ? `${daysUntilLaunch}` : daysUntilLaunch === 0 ? 'Today' : `${daysUntilLaunch}`}
                       </span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div
-                        className={`h-2 rounded-full transition-all duration-300 ${
-                          isOverdue ? 'bg-red-600' : 'bg-green-600'
-                        }`}
+                        className="bg-green-600 h-2 rounded-full transition-all duration-300"
                         style={{ width: `${Math.min(100, Math.max(0, (30 - daysUntilLaunch) / 30 * 100))}%` }}
                       ></div>
                     </div>

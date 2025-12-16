@@ -52,6 +52,7 @@ const LaunchArtifactsTracker: React.FC<ContentTrackerProps> = ({ launches, selec
   const getStatusColor = (status: ArtifactStatus): string => {
     switch (status) {
       case ArtifactStatus.COMPLETED: return 'bg-green-100 text-green-800';
+      case ArtifactStatus.PUBLISHED: return 'bg-green-100 text-green-800';
       case ArtifactStatus.IN_PROGRESS: return 'bg-blue-100 text-blue-800';
       case ArtifactStatus.TESTING: return 'bg-yellow-100 text-yellow-800';
       case ArtifactStatus.NOT_STARTED: return 'bg-gray-100 text-gray-800';
@@ -72,7 +73,10 @@ const LaunchArtifactsTracker: React.FC<ContentTrackerProps> = ({ launches, selec
   };
 
   const isOverdue = (targetDate: Date, status: ArtifactStatus): boolean => {
-    return isPast(targetDate) && !isToday(targetDate) && status !== ArtifactStatus.COMPLETED;
+    return isPast(targetDate) && !isToday(targetDate) && 
+           status !== ArtifactStatus.COMPLETED && 
+           status !== ArtifactStatus.PUBLISHED &&
+           status !== ArtifactStatus.READY_TO_PUBLISH;
   };
 
   const filteredArtifacts = getFilteredArtifacts();
@@ -296,7 +300,10 @@ const LaunchArtifactsTracker: React.FC<ContentTrackerProps> = ({ launches, selec
         </div>
         <div className="bg-green-50 p-4 rounded-lg">
           <div className="text-2xl font-bold text-green-600">
-            {filteredArtifacts.filter(item => item.artifact.status === ArtifactStatus.COMPLETED).length}
+            {filteredArtifacts.filter(item => 
+              item.artifact.status === ArtifactStatus.COMPLETED || 
+              item.artifact.status === ArtifactStatus.PUBLISHED
+            ).length}
           </div>
           <div className="text-sm text-gray-600">Completed</div>
         </div>

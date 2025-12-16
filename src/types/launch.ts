@@ -135,7 +135,8 @@ export enum ApprovalStatus {
   PENDING = 'pending',
   APPROVED = 'approved',
   REJECTED = 'rejected',
-  SKIPPED = 'skipped'
+  SKIPPED = 'skipped',
+  OVERDUE = 'overdue'
 }
 
 export enum MilestoneStatus {

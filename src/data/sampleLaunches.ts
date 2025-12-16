@@ -53,6 +53,7 @@ const mapApprovalStatus = (status: string): ApprovalStatus => {
     'approved': ApprovalStatus.APPROVED,
     'pending': ApprovalStatus.PENDING,
     'review pending': ApprovalStatus.PENDING,
+    'overdue': ApprovalStatus.OVERDUE,
     'n/a': ApprovalStatus.SKIPPED,
   };
   return statusMap[status.toLowerCase()] || ApprovalStatus.SKIPPED;
@@ -66,7 +67,7 @@ export const sampleLaunches: Launch[] = [
     description: 'HAX Collaboration',
     launchDate: parseDate('12/15/25'),
     status: LaunchStatus.ON_TRACK,
-    completionPercentage: 95,
+    completionPercentage: 57,
     riskLevel: RiskLevel.LOW,
     team: Team.ENGINEERING,
     artifacts: [
@@ -117,7 +118,7 @@ export const sampleLaunches: Launch[] = [
         name: 'Reddit social post',
         type: ArtifactType.WEBSITE,
         owner: 'Leah',
-        status: ArtifactStatus.READY_TO_PUBLISH,
+        status: ArtifactStatus.IN_PROGRESS,
         source: DataSource.MANUAL,
         targetDate: parseDate('17-Dec-25'),
         description: 'Reddit social post for HAX promotion'
@@ -127,7 +128,7 @@ export const sampleLaunches: Launch[] = [
         name: 'HAX webinar',
         type: ArtifactType.WEBINAR,
         owner: 'Leah',
-        status: ArtifactStatus.READY_TO_PUBLISH,
+        status: ArtifactStatus.IN_PROGRESS,
         source: DataSource.MANUAL,
         targetDate: parseDate('18-Dec-25'),
         description: 'HAX webinar presentation'
@@ -137,7 +138,7 @@ export const sampleLaunches: Launch[] = [
         name: 'Social post on demo',
         type: ArtifactType.WEBSITE,
         owner: 'Leah',
-        status: ArtifactStatus.READY_TO_PUBLISH,
+        status: ArtifactStatus.IN_PROGRESS,
         source: DataSource.MANUAL,
         targetDate: parseDate('19-Dec-25'),
         description: 'Social media post highlighting HAX demo'
@@ -377,7 +378,7 @@ export const sampleLaunches: Launch[] = [
             id: 'ci-messaging-review',
             approver: 'Vijoy',
             role: 'Reviewer',
-            status: ApprovalStatus.PENDING,
+            status: ApprovalStatus.OVERDUE,
             reviewStartDate: parseDate('12/12/25'),
             approvalDueDate: parseDate('12/14/25'),
             order: 1
@@ -514,10 +515,38 @@ const getRiskLevel = (completionPercentage: number, daysUntilLaunch: number): Ri
 // Helper function to calculate completion percentage
 const calculateCompletionPercentage = (artifacts: Artifact[]): number => {
   if (artifacts.length === 0) return 0;
-  const completedArtifacts = artifacts.filter(a => 
-    a.status === ArtifactStatus.COMPLETED || a.status === ArtifactStatus.READY_TO_PUBLISH
-  ).length;
-  return Math.round((completedArtifacts / artifacts.length) * 100);
+  
+  let totalProgress = 0;
+  artifacts.forEach(artifact => {
+    switch (artifact.status) {
+      case ArtifactStatus.COMPLETED:
+      case ArtifactStatus.PUBLISHED:
+        totalProgress += 100;
+        break;
+      case ArtifactStatus.READY_TO_PUBLISH:
+        totalProgress += 90;
+        break;
+      case ArtifactStatus.IN_REVIEW:
+        totalProgress += 75;
+        break;
+      case ArtifactStatus.IN_PROGRESS:
+        totalProgress += 50;
+        break;
+      case ArtifactStatus.TESTING:
+        totalProgress += 85;
+        break;
+      case ArtifactStatus.NOT_STARTED:
+        totalProgress += 0;
+        break;
+      case ArtifactStatus.BLOCKED:
+        totalProgress += 25;
+        break;
+      default:
+        totalProgress += 0;
+    }
+  });
+  
+  return Math.round(totalProgress / artifacts.length);
 };
 
 // Update completion percentages based on artifact statuses
